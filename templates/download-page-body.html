@@ -5,6 +5,12 @@
         </br>
         <h3>Download:</h3>
         </br>
+        <div class="container">
+        {{range .DirList}}
+        <a class="btn btn-outline-secondary" href="{{.Name}}" role="button">{{.Name}}</a>
+        {{end}}
+        </div>
+      </br>
             <!--      {{if .T.txt1}}-->
             <!--      <div class="alert alert-primary alert-dismissible fade show" role="alert">-->
             <!--          <strong>Holy guacamole!</strong> You should check in on some of those fields below.-->
@@ -13,6 +19,7 @@
             <!--</button>-->
             <!--      </div>-->
             <!--      {{end}}-->
+            <div class="container">
             <ol class="list-group">
                 {{range .FList}}
                 <li class="bg-light list-group-item">
@@ -22,14 +29,15 @@
                         <!--<div class="col-1"><b>{{.Index}}.</b></div>-->
                         <!--<div class="h4 col-1"><span class="badge badge-secondary">{{.Index}}.</span></div>-->
                         <!--<div class="col"><div class="alert alert-secondary" role="alert">{{.Index}}. {{.Name}}</div></div>-->
-                        <div class="col"><a class="btn btn-light btn-sm btn-block text-left" href="/download/{{.Name}}" role="button">
+                        <div class="col"><a class="btn btn-light btn-sm btn-block text-left" href="{{.Dir}}/{{.Name}}" role="button">
                             <strong>{{.Index}}. {{.Name}}</strong></a></div>
-                        <div class="col-md-auto"><a class="btn btn-info btn-sm" href="/download/{{.Name}}" role="button" download>Download</a></div>
+                        <div class="col-md-auto"><a class="btn btn-info btn-sm" href="{{.Dir}}/{{.Name}}" role="button" download>Download</a></div>
                     <!--<div class="alert alert-primary" role="alert">{{.Name}}</div>-->
                 </div>
                 </li>
                 {{end}}
             </ol>
+          </div>
     </div>
     {{template "body-footer.html" .}}
 </body>
