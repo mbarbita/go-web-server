@@ -1,0 +1,33 @@
+<body class="bg-light">
+  <div class="container">
+    </br>
+    {{template "nav-a.html" .NavA}}
+    </br>
+    <h3>Home</h3>
+    </br>
+    <div class="jumbotron">
+      <h1 class="display-4">Simple web server</h1>
+      <p class="lead">This is a simple hero unit, a simple jumbotron-style component for calling extra attention to featured content or information.</p>
+      <hr class="my-4">
+      <p>It uses utility classes for typography and spacing to space content out within the larger container.</p>
+      <a class="btn btn-primary btn-lg" href="#" role="button">Learn more</a>
+    </div>
+</div>
+
+<div class="container">
+<div class="row">
+<div class="col">
+  <ul class="list-group">
+  <li class="list-group-item list-group-item-secondary"><a href="http://portainer:9000" target="_blank">1. Portainer</a></li>
+  <li class="list-group-item list-group-item-secondary"><a href="http://grafana:3000" target="_blank">2. Grafana</a></li>
+  <li class="list-group-item list-group-item-secondary"><a href="http://adminer:8080" target="_blank">3. Adminer</a></li>
+</ul>
+</div>
+<div class="col"></div>
+</div>
+</div>
+
+  {{template "body-footer.html" .}}
+</body>
+
+</html>

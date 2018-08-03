@@ -1,0 +1,7 @@
+<div class="sticky-top float-right dropdown">
+    <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Menu</a>
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+        {{range .}}
+        <a class="dropdown-item" style="text-transform: capitalize;" href="/{{.}}.html">{{.}}</a> {{end}}
+    </div>
+</div>
