@@ -20,6 +20,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 		NavA []string
 	}
 
+	// Parse templates
 	var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 
 	// init struct
@@ -30,6 +31,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	log.Println("=== home ===")
 	log.Println(r.URL.Path)
 
+	// Execute template
 	err := htmlTpl.ExecuteTemplate(w, "home-page.html", tData)
 	if err != nil {
 		//in prod replace err.error() with something else
@@ -54,7 +56,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 		// DlFolder string
 		T map[string]bool
 	}
-
+	// Parse templates
 	var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 
 	// init struct
@@ -86,6 +88,8 @@ func download(w http.ResponseWriter, r *http.Request) {
 	log.Println("req url:", reqURL)
 	log.Println("folder path:", folderPath)
 	log.Println("folder url:", folderURL)
+
+	// Read folder structure
 	files, err := ioutil.ReadDir(folderPath)
 
 	if err != nil {
@@ -94,18 +98,19 @@ func download(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
+	// Add files and folders to separae slices of [index, name, folderURL]
 	// tData.FList = make([]FileElem, len(files))
 	i, j := 0, 0
 	var felem, direlem FileElem
 	for _, file := range files {
+		// Folders
 		if file.IsDir() {
 			direlem.Index = j + 1
 			direlem.Name = file.Name()
 			direlem.Dir = folderURL
 			tData.DirList = append(tData.DirList, direlem)
-			// tData.FList[i].Index = i + 1
-			// tData.FList[i].Name = file.Name()
 			j++
+			// Files
 		} else {
 			felem.Index = i + 1
 			felem.Name = file.Name()
@@ -125,11 +130,13 @@ func download(w http.ResponseWriter, r *http.Request) {
 
 func upload(w http.ResponseWriter, r *http.Request) {
 
+	// Define a struct for sending data to templates
 	type TData struct {
 		NavA  []string
 		token string
 	}
 	log.Println("=== upload ===")
+
 	// init struct
 	tData := new(TData)
 	tData.NavA = navA
@@ -149,8 +156,10 @@ func upload(w http.ResponseWriter, r *http.Request) {
 			//in prod replace err.error() with something else
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		// not ET method
+
+		// not GET method
 	} else {
+		// Get File from POST
 		r.ParseMultipartForm(32 << 20)
 		file, handler, err := r.FormFile("uploadfile")
 		if err != nil {
@@ -159,6 +168,8 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		}
 		defer file.Close()
 		fmt.Fprintf(w, "Done: %v", handler.Filename)
+
+		// Save File
 		// fmt.Fprintf(w, "%v", handler.Header)
 		f, err := os.OpenFile("./download/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
@@ -167,6 +178,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		}
 		defer f.Close()
 		io.Copy(f, file)
+		fmt.Fprintf(w, "Done: %v", handler.Filename)
 		// http.Redirect(w, r, "/upload.html", http.StatusSeeOther)
 	}
 }
@@ -182,7 +194,7 @@ func main() {
 	http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir("download"))))
 	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("root"))))
 
-	log.Println("Running")
+	log.Println("Running...")
 	err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
