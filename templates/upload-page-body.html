@@ -1,0 +1,17 @@
+<body class="bg-light">
+  <div class="container">
+    </br>
+    {{template "nav-a.html" .NavA}}
+    </br>
+    <h3>Upload</h3>
+    </br>
+    <form enctype="multipart/form-data" action="upload.html" method="post">
+      <input type="file" name="uploadfile" />
+      <input type="hidden" name="token" value="{{.}}" />
+      <input type="submit" value="upload" />
+    </form>
+  </div>
+  {{template "body-footer.html" .}}
+</body>
+
+</html>

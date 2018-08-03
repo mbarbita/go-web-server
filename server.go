@@ -1,10 +1,16 @@
 package main
 
 import (
+	"crypto/md5"
+	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
+	"time"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
@@ -14,27 +20,20 @@ func home(w http.ResponseWriter, r *http.Request) {
 		NavA []string
 	}
 
+	var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
+
 	// init struct
 	tData := new(TData)
 	tData.NavA = navA
 
 	// var path = strings.Trim(r.URL.Path, "/")
-	log.Println("home-----------------------------------------------------")
+	log.Println("=== home ===")
 	log.Println(r.URL.Path)
 
-	// if r.URL.Path != "/index.html" {
-	// 	log.Println("restu")
-	// }
-
-	var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
-	// var htmlTpl = template.Must(template.ParseFiles("templates/page.html"))
-	// log.Println(htmlTpl)
-
-	// Process template and write to response to client
 	err := htmlTpl.ExecuteTemplate(w, "home-page.html", tData)
 	if err != nil {
 		//in prod replace err.error() with something else
-		// http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 }
@@ -56,6 +55,8 @@ func download(w http.ResponseWriter, r *http.Request) {
 		T map[string]bool
 	}
 
+	var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
+
 	// init struct
 	tData := new(TData)
 	tData.NavA = navA
@@ -63,15 +64,10 @@ func download(w http.ResponseWriter, r *http.Request) {
 
 	// var path = "download"
 	// var path = strings.Trim(r.URL.Path, "/")
-	log.Println("download-------------------------------------------------")
+	log.Println("=== download ===")
 	log.Println(r.URL.Path)
 
-	var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
-	// var htmlTpl = template.Must(template.ParseFiles("templates/page.html"))
-	//log.Println(htmlTpl)
-
 	// Add some data
-
 	tData.T["txt1"] = false
 
 	//Read files
@@ -98,7 +94,6 @@ func download(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	// tData.FList = files
 	// tData.FList = make([]FileElem, len(files))
 	i, j := 0, 0
 	var felem, direlem FileElem
@@ -118,11 +113,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 			tData.FList = append(tData.FList, felem)
 			i++
 		}
-		// fmt.Println(tData.FList[i].Name)
-		// fmt.Println(i)
 	}
-	// tData.DlFolder = folderURL + "/"
-	// log.Println(tData.DlFolder)
 	// Process template and write to response to client
 	err = htmlTpl.ExecuteTemplate(w, "download-page.html", tData)
 	if err != nil {
@@ -132,19 +123,66 @@ func download(w http.ResponseWriter, r *http.Request) {
 
 }
 
-var navA = []string{"home", "downloads"}
+func upload(w http.ResponseWriter, r *http.Request) {
+
+	type TData struct {
+		NavA  []string
+		token string
+	}
+	log.Println("=== upload ===")
+	// init struct
+	tData := new(TData)
+	tData.NavA = navA
+
+	log.Println("method:", r.Method)
+	if r.Method == "GET" {
+		crutime := time.Now().Unix()
+		h := md5.New()
+		io.WriteString(h, strconv.FormatInt(crutime, 10))
+		tData.token = fmt.Sprintf("%x", h.Sum(nil))
+
+		var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
+		// t, _ := template.ParseFiles("upload.html")
+		// t.Execute(w, token)
+		err := htmlTpl.ExecuteTemplate(w, "upload-page.html", tData)
+		if err != nil {
+			//in prod replace err.error() with something else
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		// not ET method
+	} else {
+		r.ParseMultipartForm(32 << 20)
+		file, handler, err := r.FormFile("uploadfile")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer file.Close()
+		fmt.Fprintf(w, "Done: %v", handler.Filename)
+		// fmt.Fprintf(w, "%v", handler.Header)
+		f, err := os.OpenFile("./download/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer f.Close()
+		io.Copy(f, file)
+		// http.Redirect(w, r, "/upload.html", http.StatusSeeOther)
+	}
+}
+
+// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
+var navA = []string{"home", "downloads", "upload"}
 
 func main() {
+
 	http.HandleFunc("/home.html", home)
-	// http.HandleFunc("/", index)
-	// http.HandleFunc("/download.html", download)
 	http.HandleFunc("/downloads.html/", download)
+	http.HandleFunc("/upload.html/", upload)
 	http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir("download"))))
 	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("root"))))
 
-	// http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("bootstrap/css"))))
-	// http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("bootstrap/js"))))
-	log.Println("Starting...")
+	log.Println("Running")
 	err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
