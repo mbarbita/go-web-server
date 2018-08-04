@@ -11,6 +11,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/fsnotify/fsnotify"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
@@ -21,7 +23,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse templates
-	var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
+	// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 
 	// init struct
 	tData := new(TData)
@@ -57,7 +59,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 		T map[string]bool
 	}
 	// Parse templates
-	var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
+	// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 
 	// init struct
 	tData := new(TData)
@@ -148,7 +150,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(h, strconv.FormatInt(crutime, 10))
 		tData.token = fmt.Sprintf("%x", h.Sum(nil))
 
-		var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
+		// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 		// t, _ := template.ParseFiles("upload.html")
 		// t.Execute(w, token)
 		err := htmlTpl.ExecuteTemplate(w, "upload-page.html", tData)
@@ -183,7 +185,48 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
+// Watch templates folder and reload templates on change
+func dirWatcher(folders ...string) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				log.Println("=== dir Watcher ===")
+				log.Println("event:", event)
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					log.Println("modified file:", event.Name)
+				}
+				htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
+			case err := <-watcher.Errors:
+				log.Println("error:", err)
+			}
+		}
+	}()
+
+	for _, folder := range folders {
+		err = watcher.Add(folder)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	// err = watcher.Add("./test")
+	// err = watcher.Add("./test2")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	//loop forever
+	<-done
+}
+
+var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 var navA = []string{"home", "downloads", "upload"}
 
 func main() {
@@ -195,6 +238,10 @@ func main() {
 	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("root"))))
 
 	log.Println("Running...")
+
+	//Watch template foldr
+	go dirWatcher("./templates")
+
 	err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
