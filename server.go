@@ -20,6 +20,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	// Define a struct for sending data to templates
 	type TData struct {
 		NavA []string
+		Host string
 	}
 
 	// Parse templates
@@ -28,10 +29,12 @@ func home(w http.ResponseWriter, r *http.Request) {
 	// init struct
 	tData := new(TData)
 	tData.NavA = navA
+	tData.Host = r.Host
 
 	// var path = strings.Trim(r.URL.Path, "/")
 	log.Println("=== home ===")
-	log.Println(r.URL.Path)
+	log.Println("path:", r.URL.Path)
+	log.Println("host:", tData.Host)
 
 	// Execute template
 	err := htmlTpl.ExecuteTemplate(w, "home-page.html", tData)
@@ -56,7 +59,8 @@ func download(w http.ResponseWriter, r *http.Request) {
 		FList   []FileElem
 		DirList []FileElem
 		// DlFolder string
-		T map[string]bool
+		T    map[string]bool
+		host string
 	}
 	// Parse templates
 	// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
@@ -65,6 +69,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	tData := new(TData)
 	tData.NavA = navA
 	tData.T = make(map[string]bool)
+	tData.host = r.Host
 
 	// var path = "download"
 	// var path = strings.Trim(r.URL.Path, "/")
@@ -76,7 +81,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 
 	//Read files
 	reqURL := r.URL.Path[len("/downloads.html/"):]
-	folderPath := "./download"
+	folderPath := "download"
 	folderURL := "/download"
 	if reqURL != "" {
 
@@ -136,12 +141,14 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	type TData struct {
 		NavA  []string
 		token string
+		host  string
 	}
 	log.Println("=== upload ===")
 
 	// init struct
 	tData := new(TData)
 	tData.NavA = navA
+	tData.host = r.Host
 
 	log.Println("method:", r.Method)
 	if r.Method == "GET" {
@@ -173,7 +180,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 		// Save File
 		// fmt.Fprintf(w, "%v", handler.Header)
-		f, err := os.OpenFile("./download/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		f, err := os.OpenFile("download/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -240,7 +247,7 @@ func main() {
 	log.Println("Running...")
 
 	//Watch template foldr
-	go dirWatcher("./templates")
+	go dirWatcher("templates")
 
 	err := http.ListenAndServe(":80", nil)
 	if err != nil {
