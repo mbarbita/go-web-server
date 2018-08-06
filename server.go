@@ -58,9 +58,8 @@ func download(w http.ResponseWriter, r *http.Request) {
 		NavA    []string
 		FList   []FileElem
 		DirList []FileElem
-		// DlFolder string
-		T    map[string]bool
-		host string
+		T       map[string]bool
+		host    string
 	}
 	// Parse templates
 	// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
@@ -71,8 +70,6 @@ func download(w http.ResponseWriter, r *http.Request) {
 	tData.T = make(map[string]bool)
 	tData.host = r.Host
 
-	// var path = "download"
-	// var path = strings.Trim(r.URL.Path, "/")
 	log.Println("=== download ===")
 	log.Println(r.URL.Path)
 
@@ -157,9 +154,9 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(h, strconv.FormatInt(crutime, 10))
 		tData.token = fmt.Sprintf("%x", h.Sum(nil))
 
+		// Parse templates
 		// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
-		// t, _ := template.ParseFiles("upload.html")
-		// t.Execute(w, token)
+
 		err := htmlTpl.ExecuteTemplate(w, "upload-page.html", tData)
 		if err != nil {
 			//in prod replace err.error() with something else
@@ -223,12 +220,6 @@ func dirWatcher(folders ...string) {
 			log.Fatal(err)
 		}
 	}
-	// err = watcher.Add("./test")
-	// err = watcher.Add("./test2")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
 	//loop forever
 	<-done
 }
