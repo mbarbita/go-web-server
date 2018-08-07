@@ -1,22 +1,19 @@
 <body class="bg-light">
+  </br>
   <div class="container">
-    </br>
     {{template "nav-a.html" .NavA}}
-    </br>
     <h3>Upload</h3>
   </div>
-    </br>
-    <div class="container">
-      <div class="form-group">
-    <form enctype="multipart/form-data" action="upload.html" method="post">
-      <input type="file" class="form-control-file" name="uploadfile" />
-      <input type="hidden" name="token" value="{{.}}" />
-    </br>
-      <input type="submit" class="btn btn-info" value="upload" />
-    </form>
-  </div>
+  </br>
+  <div class="container">
+    <div class="form-group">
+      <form enctype="multipart/form-data" action="upload.html" method="post">
+        <input type="file" class="form-control-file" name="uploadfile" />
+        <input type="hidden" name="token" value="{{.}}" />
+        </br>
+        <input type="submit" class="btn btn-info" value="upload" />
+      </form>
+    </div>
   </div>
   {{template "body-footer.html" .}}
 </body>
-
-</html>

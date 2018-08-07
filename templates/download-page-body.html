@@ -1,11 +1,10 @@
 <body class="bg-light">
+  </br>
   <div class="container">
-    </br>
     {{template "nav-a.html" .NavA}}
-    </br>
     <h3>Download:</h3>
-    </br>
   </div>
+  </br>
   <div class="container">
     {{range .DirList}}
     <a class="btn btn-outline-primary" href="{{.Name}}" role="button">{{.Name}}</a> {{end}}
@@ -26,5 +25,3 @@
   </div>
   {{template "body-footer.html" .}}
 </body>
-
-</html>
