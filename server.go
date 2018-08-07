@@ -24,6 +24,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	type TData struct {
 		NavAll []string
 		Host   string
+		Visits int
 	}
 
 	// Parse templates
@@ -45,11 +46,15 @@ func home(w http.ResponseWriter, r *http.Request) {
 	key := "visits"
 	if session.Values[key] == nil {
 		session.Values[key] = 1
+		tData.Visits = 1
 	} else {
 		val, _ := session.Values[key].(int)
 		val++
 		session.Values[key] = val
+		tData.Visits = val
 	}
+
+	// val := getSessionInt(session, "visits")
 
 	// session.Values[42] = 43
 	// Save it before we write to the response/return from the handler.
@@ -264,6 +269,33 @@ func dirWatcher(folders ...string) {
 	}
 	//loop forever
 	<-done
+}
+
+func getSessionInt(session *sessions.Session, key string) int {
+	// key := "visits"
+	// if session.Values[key] == nil {
+	// session.Values[key] = 0
+	// return 0
+	// } else {
+	// val, _ := session.Values[key].(int)
+	// val++
+	// session.Values[key] = val
+	// return val
+	// }
+	val, _ := session.Values[key].(int)
+	return val
+}
+
+func setSessionInt(session *sessions.Session, key string, val int) {
+	// if session.Values[key] == nil {
+	session.Values[key] = val
+	// return 0
+	// } else {
+	// val, _ := session.Values[key].(int)
+	// val++
+	// session.Values[key] = val
+	// return val
+	// }
 }
 
 var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
