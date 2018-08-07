@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/md5"
+	"flag"
 	"fmt"
 	"html/template"
 	"io"
@@ -42,7 +43,6 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 	// Set some session values.
 	key := "visits"
-
 	if session.Values[key] == nil {
 		session.Values[key] = 1
 	} else {
@@ -50,18 +50,21 @@ func home(w http.ResponseWriter, r *http.Request) {
 		val++
 		session.Values[key] = val
 	}
+
 	// session.Values[42] = 43
 	// Save it before we write to the response/return from the handler.
 	session.Save(r, w)
 
 	// var path = strings.Trim(r.URL.Path, "/")
-	log.Println("=== home ===")
-	log.Println("path:", r.URL.Path)
-	log.Println("host:", tData.Host)
+	if *loglvl {
+		log.Println("=== home ===")
+		log.Println("path:", r.URL.Path)
+		log.Println("host:", tData.Host)
 
-	log.Println("session:", session)
-	val, _ := session.Values[key].(int)
-	log.Printf("val: %v: %T\n", val, val)
+		log.Println("session:", session)
+		val, _ := session.Values[key].(int)
+		log.Printf("val: %v: %T\n", val, val)
+	}
 
 	// Execute template
 	err = htmlTpl.ExecuteTemplate(w, "home-page.html", tData)
@@ -96,29 +99,32 @@ func download(w http.ResponseWriter, r *http.Request) {
 	tData.NavAll = navAll
 	// tData.T = make(map[string]bool)
 	tData.host = r.Host
-
-	log.Println("=== download ===")
-	log.Println(r.URL.Path)
+	if *loglvl {
+		log.Println("=== download ===")
+		log.Println(r.URL.Path)
+	}
 
 	// Add some data
-	tData.T["txt1"] = false
+	// tData.T["txt1"] = false
 
 	//Read files
 	reqURL := r.URL.Path[len("/downloads.html/"):]
 	folderPath := "download"
 	folderURL := "/download"
-	if reqURL != "" {
 
+	if reqURL != "" {
 		// folderPath += folderPath+"/"+ reqURL
 		folderPath = folderPath + "/" + reqURL
 		folderURL = folderURL + "/" + reqURL
 		// folderURL += r.URL.Path
 	}
 
-	log.Println("url:", r.URL.Path)
-	log.Println("req url:", reqURL)
-	log.Println("folder path:", folderPath)
-	log.Println("folder url:", folderURL)
+	if *loglvl {
+		log.Println("url:", r.URL.Path)
+		log.Println("req url:", reqURL)
+		log.Println("folder path:", folderPath)
+		log.Println("folder url:", folderURL)
+	}
 
 	// Read folder structure
 	files, err := ioutil.ReadDir(folderPath)
@@ -167,14 +173,17 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		token  string
 		host   string
 	}
-	log.Println("=== upload ===")
 
 	// init struct
 	tData := new(TData)
 	tData.NavAll = navAll
 	tData.host = r.Host
 
-	log.Println("method:", r.Method)
+	if *loglvl {
+		log.Println("=== upload ===")
+		log.Println("method:", r.Method)
+	}
+
 	if r.Method == "GET" {
 		crutime := time.Now().Unix()
 		h := md5.New()
@@ -229,11 +238,17 @@ func dirWatcher(folders ...string) {
 		for {
 			select {
 			case event := <-watcher.Events:
-				log.Println("=== dir Watcher ===")
-				log.Println("event:", event)
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Println("modified file:", event.Name)
+				if *loglvl {
+					log.Println("=== dir Watcher ===")
+					log.Println("event:", event)
 				}
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					if *loglvl {
+						log.Println("modified file:", event.Name)
+					}
+				}
+
+				// Parse templates
 				htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 			case err := <-watcher.Errors:
 				log.Println("error:", err)
@@ -254,11 +269,13 @@ func dirWatcher(folders ...string) {
 var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 var navAll = []string{"home", "downloads", "upload"}
 var store *sessions.CookieStore
+var loglvl = flag.Bool("loglvl", false, "false: disabled, true: enabled")
 
 func init() {
 
 	// gorilla cookie store
 	store = sessions.NewCookieStore([]byte("something-very-secret"))
+	// loglvl := flag.Bool("loglvl", false, "false: disabled, true: enabled")
 
 	store.Options = &sessions.Options{
 		Path:     "/",
@@ -268,6 +285,9 @@ func init() {
 }
 
 func main() {
+
+	// loglvl := flag.Bool("loglvl", "0", "false: disabled, true: enabled")
+	flag.Parse()
 
 	http.HandleFunc("/home.html", home)
 	http.HandleFunc("/downloads.html/", download)
