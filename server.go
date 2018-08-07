@@ -13,14 +13,16 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/gorilla/context"
+	"github.com/gorilla/sessions"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
 
 	// Define a struct for sending data to templates
 	type TData struct {
-		NavA []string
-		Host string
+		NavAll []string
+		Host   string
 	}
 
 	// Parse templates
@@ -28,16 +30,41 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 	// init struct
 	tData := new(TData)
-	tData.NavA = navA
+	tData.NavAll = navAll
 	tData.Host = r.Host
+
+	// Get session
+	session, err := store.Get(r, "test-session")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Set some session values.
+	key := "visits"
+
+	if session.Values[key] == nil {
+		session.Values[key] = 1
+	} else {
+		val, _ := session.Values[key].(int)
+		val++
+		session.Values[key] = val
+	}
+	// session.Values[42] = 43
+	// Save it before we write to the response/return from the handler.
+	session.Save(r, w)
 
 	// var path = strings.Trim(r.URL.Path, "/")
 	log.Println("=== home ===")
 	log.Println("path:", r.URL.Path)
 	log.Println("host:", tData.Host)
 
+	log.Println("session:", session)
+	val, _ := session.Values[key].(int)
+	log.Printf("val: %v: %T\n", val, val)
+
 	// Execute template
-	err := htmlTpl.ExecuteTemplate(w, "home-page.html", tData)
+	err = htmlTpl.ExecuteTemplate(w, "home-page.html", tData)
 	if err != nil {
 		//in prod replace err.error() with something else
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -55,7 +82,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type TData struct {
-		NavA    []string
+		NavAll  []string
 		FList   []FileElem
 		DirList []FileElem
 		T       map[string]bool
@@ -66,8 +93,8 @@ func download(w http.ResponseWriter, r *http.Request) {
 
 	// init struct
 	tData := new(TData)
-	tData.NavA = navA
-	tData.T = make(map[string]bool)
+	tData.NavAll = navAll
+	// tData.T = make(map[string]bool)
 	tData.host = r.Host
 
 	log.Println("=== download ===")
@@ -136,15 +163,15 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 	// Define a struct for sending data to templates
 	type TData struct {
-		NavA  []string
-		token string
-		host  string
+		NavAll []string
+		token  string
+		host   string
 	}
 	log.Println("=== upload ===")
 
 	// init struct
 	tData := new(TData)
-	tData.NavA = navA
+	tData.NavAll = navAll
 	tData.host = r.Host
 
 	log.Println("method:", r.Method)
@@ -225,7 +252,20 @@ func dirWatcher(folders ...string) {
 }
 
 var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
-var navA = []string{"home", "downloads", "upload"}
+var navAll = []string{"home", "downloads", "upload"}
+var store *sessions.CookieStore
+
+func init() {
+
+	// gorilla cookie store
+	store = sessions.NewCookieStore([]byte("something-very-secret"))
+
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 3600,
+		HttpOnly: true,
+	}
+}
 
 func main() {
 
@@ -240,7 +280,9 @@ func main() {
 	//Watch template foldr
 	go dirWatcher("templates")
 
-	err := http.ListenAndServe(":80", nil)
+	// Gorilla mux
+	err := http.ListenAndServe(":80", context.ClearHandler(http.DefaultServeMux))
+	// err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}
