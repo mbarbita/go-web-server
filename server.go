@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/md5"
 	"flag"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -58,10 +60,12 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 	// session.Values[42] = 43
 	// Save it before we write to the response/return from the handler.
-	session.Save(r, w)
-
+	err = session.Save(r, w)
+	if err != nil {
+		log.Println("Session save error:", err)
+	}
 	// var path = strings.Trim(r.URL.Path, "/")
-	if *loglvl {
+	if *logmore {
 		log.Println("=== home ===")
 		log.Println("path:", r.URL.Path)
 		log.Println("host:", tData.Host)
@@ -104,7 +108,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	tData.NavAll = navAll
 	// tData.T = make(map[string]bool)
 	tData.host = r.Host
-	if *loglvl {
+	if *logmore {
 		log.Println("=== download ===")
 		log.Println(r.URL.Path)
 	}
@@ -124,7 +128,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 		// folderURL += r.URL.Path
 	}
 
-	if *loglvl {
+	if *logmore {
 		log.Println("url:", r.URL.Path)
 		log.Println("req url:", reqURL)
 		log.Println("folder path:", folderPath)
@@ -184,7 +188,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	tData.NavAll = navAll
 	tData.host = r.Host
 
-	if *loglvl {
+	if *logmore {
 		log.Println("=== upload ===")
 		log.Println("method:", r.Method)
 	}
@@ -243,12 +247,12 @@ func dirWatcher(folders ...string) {
 		for {
 			select {
 			case event := <-watcher.Events:
-				if *loglvl {
+				if *logmore {
 					log.Println("=== dir Watcher ===")
 					log.Println("event:", event)
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					if *loglvl {
+					if *logmore {
 						log.Println("modified file:", event.Name)
 					}
 				}
@@ -298,10 +302,73 @@ func setSessionInt(session *sessions.Session, key string, val int) {
 	// }
 }
 
+func readLines(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
+}
+
+// writeLines writes the lines to the given file.
+func writeLines(lines []string, path string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	w := bufio.NewWriter(file)
+	for _, line := range lines {
+		fmt.Fprintln(w, line)
+	}
+	return w.Flush()
+}
+
+func getLogins() map[string]string {
+
+	var logins = make(map[string]string)
+
+	lines, err := readLines("users.txt")
+	if err != nil {
+		log.Fatalf("readLines: %s", err)
+	}
+
+	for i, line := range lines {
+		if *logmore {
+			fmt.Println("Readed line:", i, line)
+		}
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		fld := strings.Fields(line)
+		if *logmore {
+			fmt.Printf("Fields are: %q\n", fld)
+		}
+		logins[fld[0]] = fld[1]
+	}
+
+	if *logmore {
+		fmt.Println("map:", logins)
+	}
+	return logins
+	// if err := writeLines(lines, "test.out.txt"); err != nil {
+	// 	log.Fatalf("writeLines: %s", err)
+	// }
+}
+
 var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 var navAll = []string{"home", "downloads", "upload"}
 var store *sessions.CookieStore
-var loglvl = flag.Bool("loglvl", false, "false: disabled, true: enabled")
+var logmore = flag.Bool("logmore", true, "false: disabled, true: enabled")
+var logins = make(map[string]string)
 
 func init() {
 
@@ -314,12 +381,20 @@ func init() {
 		MaxAge:   86400 * 3600,
 		HttpOnly: true,
 	}
+
+	logins := getLogins()
+	if *logmore {
+		fmt.Println(logins)
+	}
 }
 
 func main() {
 
 	// loglvl := flag.Bool("loglvl", "0", "false: disabled, true: enabled")
 	flag.Parse()
+
+	//Watch template foldr
+	go dirWatcher("templates")
 
 	http.HandleFunc("/home.html", home)
 	http.HandleFunc("/downloads.html/", download)
@@ -328,9 +403,6 @@ func main() {
 	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("root"))))
 
 	log.Println("Running...")
-
-	//Watch template foldr
-	go dirWatcher("templates")
 
 	// Gorilla mux
 	err := http.ListenAndServe(":80", context.ClearHandler(http.DefaultServeMux))
