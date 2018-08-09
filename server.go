@@ -58,8 +58,8 @@ func home(w http.ResponseWriter, r *http.Request) {
 		tData.Visits = val
 	}
 
-	session.Values["user"] = "user2"
-	session.Values["password"] = "pass2"
+	// session.Values["user"] = "user2"
+	// session.Values["password"] = "pass2"
 
 	// Save it before we write to the response/return from the handler.
 	err = session.Save(r, w)
@@ -206,12 +206,14 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	cookieuser, ok := session.Values["user"].(string)
 	if !ok {
 		log.Println("user assert failed")
+		http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 		return
 	}
 
 	// cookiepass, ok := session.Values["password"].(string)
 	// if !ok {
 	// 	log.Println("password assert failed")
+	// http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 	// 	return
 	// }
 
@@ -223,6 +225,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 			// loggedin = true
 		} else {
 			log.Println("not authenticated")
+			// upload not authenticated, redirect to home
 			http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 			return
 		}
@@ -298,14 +301,16 @@ func login(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, "test-session")
 	if err != nil {
 		log.Println("upload get session:", err)
+		// Session logic broken, safe to continue, unable to login
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		// return
 	}
 
 	cookieuser, ok := session.Values["user"].(string)
 	if !ok {
+		// no user, continue for now
 		log.Println("user assert failed")
-		return
+		// return
 	}
 
 	// cookiepass, ok := session.Values["password"].(string)
@@ -319,9 +324,11 @@ func login(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		if v {
 			log.Println("cookie authentication ok")
-			authenticated[logins[cookieuser]] = true
+			// authenticated[logins[cookieuser]] = true
+			// already authenticated, redirect home
 			http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 		} else {
+			// login required, continue
 			log.Println("cookie authentication failed")
 			// return
 		}
@@ -345,6 +352,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		err := htmlTpl.ExecuteTemplate(w, "login-page.html", tData)
 		if err != nil {
 			//in prod replace err.error() with something else
+			log.Println("template parse error")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
@@ -356,22 +364,35 @@ func login(w http.ResponseWriter, r *http.Request) {
 		log.Println("username:", r.Form["username"])
 		log.Println("password:", r.Form["password"])
 
+		formusert := r.Form["username"][0]
 		formuser := strings.Join(r.Form["username"], ",")
 		formpassword := strings.Join(r.Form["password"], ",")
+		log.Println("username:", formuser, formusert, "pass:", formpassword)
 
 		v, ok := logins[formuser]
 
 		if ok {
 			if v == formpassword {
 				log.Println("form authentication ok")
-				authenticated[logins[formuser]] = true
+
+				session.Values["user"] = formuser
+				session.Values["password"] = formpassword
+
+				// Save it before we write to the response/return from the handler.
+				err = session.Save(r, w)
+				if err != nil {
+					log.Println("Session save error:", err)
+				}
+
+				authenticated[formuser] = true
+				log.Println("auth map:", authenticated)
 				http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 			} else {
 				log.Println("form authentication failed")
-				// return
+				http.Redirect(w, r, "/home.html", http.StatusSeeOther)
+				return
 			}
 		}
-
 	}
 }
 
