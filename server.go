@@ -30,6 +30,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse templates
+	// moved to goroutine fsnotify
 	// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 
 	// init struct
@@ -40,6 +41,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	// Get session
 	session, err := store.Get(r, "test-session")
 	if err != nil {
+		log.Println("home get session:", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -56,9 +58,9 @@ func home(w http.ResponseWriter, r *http.Request) {
 		tData.Visits = val
 	}
 
-	// val := getSessionInt(session, "visits")
+	session.Values["user"] = "user2"
+	session.Values["password"] = "pass2"
 
-	// session.Values[42] = 43
 	// Save it before we write to the response/return from the handler.
 	err = session.Save(r, w)
 	if err != nil {
@@ -72,7 +74,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 		log.Println("session:", session)
 		val, _ := session.Values[key].(int)
-		log.Printf("val: %v: %T\n", val, val)
+		log.Printf("visits: %v: %T\n", val, val)
 	}
 
 	// Execute template
@@ -187,9 +189,48 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	tData := new(TData)
 	tData.NavAll = navAll
 	tData.host = r.Host
+	// loggedin := false
 
 	if *logmore {
 		log.Println("=== upload ===")
+	}
+
+	// Get session
+	session, err := store.Get(r, "test-session")
+	if err != nil {
+		log.Println("upload get session:", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	cookieuser, ok := session.Values["user"].(string)
+	if !ok {
+		log.Println("user assert failed")
+		return
+	}
+
+	// cookiepass, ok := session.Values["password"].(string)
+	// if !ok {
+	// 	log.Println("password assert failed")
+	// 	return
+	// }
+
+	v, ok := authenticated[cookieuser]
+
+	if ok {
+		if v {
+			log.Println("authenticated")
+			// loggedin = true
+		} else {
+			log.Println("not authenticated")
+			http.Redirect(w, r, "/home.html", http.StatusSeeOther)
+			return
+		}
+	}
+
+	// log.Println("loggedin (should be always true):", loggedin)
+
+	if *logmore {
 		log.Println("method:", r.Method)
 	}
 
@@ -234,6 +275,106 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func login(w http.ResponseWriter, r *http.Request) {
+
+	// Define a struct for sending data to templates
+	type TData struct {
+		NavAll []string
+		token  string
+		host   string
+	}
+
+	// init struct
+	tData := new(TData)
+	tData.NavAll = navAll
+	tData.host = r.Host
+	// loggedin := false
+
+	if *logmore {
+		log.Println("=== login ===")
+	}
+
+	// Get session
+	session, err := store.Get(r, "test-session")
+	if err != nil {
+		log.Println("upload get session:", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	cookieuser, ok := session.Values["user"].(string)
+	if !ok {
+		log.Println("user assert failed")
+		return
+	}
+
+	// cookiepass, ok := session.Values["password"].(string)
+	// if !ok {
+	// 	log.Println("password assert failed")
+	// 	return
+	// }
+
+	v, ok := authenticated[cookieuser]
+
+	if ok {
+		if v {
+			log.Println("cookie authentication ok")
+			authenticated[logins[cookieuser]] = true
+			http.Redirect(w, r, "/home.html", http.StatusSeeOther)
+		} else {
+			log.Println("cookie authentication failed")
+			// return
+		}
+	}
+
+	// log.Println("loggedin (should be always true):", loggedin)
+
+	if *logmore {
+		log.Println("method:", r.Method)
+	}
+
+	if r.Method == "GET" {
+		// crutime := time.Now().Unix()
+		// h := md5.New()
+		// io.WriteString(h, strconv.FormatInt(crutime, 10))
+		// tData.token = fmt.Sprintf("%x", h.Sum(nil))
+
+		// Parse templates
+		// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
+
+		err := htmlTpl.ExecuteTemplate(w, "login-page.html", tData)
+		if err != nil {
+			//in prod replace err.error() with something else
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+		// not GET method
+	} else {
+
+		// Get File from POST
+		r.ParseForm()
+		log.Println("username:", r.Form["username"])
+		log.Println("password:", r.Form["password"])
+
+		formuser := strings.Join(r.Form["username"], ",")
+		formpassword := strings.Join(r.Form["password"], ",")
+
+		v, ok := logins[formuser]
+
+		if ok {
+			if v == formpassword {
+				log.Println("form authentication ok")
+				authenticated[logins[formuser]] = true
+				http.Redirect(w, r, "/home.html", http.StatusSeeOther)
+			} else {
+				log.Println("form authentication failed")
+				// return
+			}
+		}
+
+	}
+}
+
 // Watch templates folder and reload templates on change
 func dirWatcher(folders ...string) {
 	watcher, err := fsnotify.NewWatcher()
@@ -270,12 +411,14 @@ func dirWatcher(folders ...string) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Println("Watching folder:", folder)
 	}
 	//loop forever
 	<-done
 }
 
 func getSessionInt(session *sessions.Session, key string) int {
+	val := 0
 	// key := "visits"
 	// if session.Values[key] == nil {
 	// session.Values[key] = 0
@@ -286,13 +429,13 @@ func getSessionInt(session *sessions.Session, key string) int {
 	// session.Values[key] = val
 	// return val
 	// }
-	val, _ := session.Values[key].(int)
+	// 	val, _ := session.Values[key].(int)
 	return val
 }
 
 func setSessionInt(session *sessions.Session, key string, val int) {
 	// if session.Values[key] == nil {
-	session.Values[key] = val
+	// session.Values[key] = val
 	// return 0
 	// } else {
 	// val, _ := session.Values[key].(int)
@@ -343,20 +486,20 @@ func getLogins() map[string]string {
 
 	for i, line := range lines {
 		if *logmore {
-			fmt.Println("Readed line:", i, line)
+			log.Println("Readed line:", i, line)
 		}
 		if strings.HasPrefix(line, "#") {
 			continue
 		}
 		fld := strings.Fields(line)
 		if *logmore {
-			fmt.Printf("Fields are: %q\n", fld)
+			log.Printf("Fields are: %q\n", fld)
 		}
 		logins[fld[0]] = fld[1]
 	}
 
 	if *logmore {
-		fmt.Println("map:", logins)
+		log.Println("logins map:", logins)
 	}
 	return logins
 	// if err := writeLines(lines, "test.out.txt"); err != nil {
@@ -365,16 +508,16 @@ func getLogins() map[string]string {
 }
 
 var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
-var navAll = []string{"home", "downloads", "upload"}
+var navAll = []string{"home", "downloads", "upload", "login"}
 var store *sessions.CookieStore
 var logmore = flag.Bool("logmore", true, "false: disabled, true: enabled")
-var logins = make(map[string]string)
+var logins map[string]string
+var authenticated map[string]bool
 
 func init() {
 
 	// gorilla cookie store
 	store = sessions.NewCookieStore([]byte("something-very-secret"))
-	// loglvl := flag.Bool("loglvl", false, "false: disabled, true: enabled")
 
 	store.Options = &sessions.Options{
 		Path:     "/",
@@ -382,9 +525,21 @@ func init() {
 		HttpOnly: true,
 	}
 
-	logins := getLogins()
+	logins = getLogins()
 	if *logmore {
-		fmt.Println(logins)
+		log.Println("logins map (init func):", logins)
+	}
+
+	authenticated = make(map[string]bool)
+	for k, _ := range logins {
+		authenticated[k] = false
+	}
+	if *logmore {
+		log.Println("authenticated map (init func):", authenticated)
+	}
+	// authenticated["user2"] = true
+	if *logmore {
+		log.Println("auth user: authenticated map (init func):", authenticated)
 	}
 }
 
@@ -396,9 +551,10 @@ func main() {
 	//Watch template foldr
 	go dirWatcher("templates")
 
-	http.HandleFunc("/home.html", home)
+	http.HandleFunc("/home.html/", home)
 	http.HandleFunc("/downloads.html/", download)
 	http.HandleFunc("/upload.html/", upload)
+	http.HandleFunc("/login.html/", login)
 	http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir("download"))))
 	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("root"))))
 
