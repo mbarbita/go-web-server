@@ -42,7 +42,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, "test-session")
 	if err != nil {
 		log.Println("home get session:", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -80,8 +80,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	// Execute template
 	err = htmlTmpl.ExecuteTemplate(w, "home-page.html", tData)
 	if err != nil {
-		//in prod replace err.error() with something else
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
 }
@@ -170,8 +169,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	// Process template and write to response to client
 	err = htmlTmpl.ExecuteTemplate(w, "download-page.html", tData)
 	if err != nil {
-		//in prod replace err.error() with something else
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
 }
@@ -200,7 +198,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("upload get session:", err)
 		// TODO redirect
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -240,8 +238,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 		err := htmlTmpl.ExecuteTemplate(w, "upload-page.html", tData)
 		if err != nil {
-			//in prod replace err.error() with something else
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 
 		// not GET method
@@ -294,7 +291,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("upload get session:", err)
 		// Session logic broken, safe to continue, unable to login
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		// return
 	}
 
@@ -332,9 +329,8 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 		err := htmlTmpl.ExecuteTemplate(w, "login-page.html", tData)
 		if err != nil {
-			//in prod replace err.error() with something else
 			log.Println("template parse error")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 
 		// not GET method
@@ -520,11 +516,11 @@ func init() {
 
 	// gorilla cookie store
 	store = sessions.NewCookieStore([]byte("something-very-secret"))
-
 	store.Options = &sessions.Options{
-		Path:     "/",
-		MaxAge:   86400 * 3600,
-		HttpOnly: true,
+		// Path:     "/",
+		MaxAge: 86400 * 3600,
+		// HttpOnly: true,
+		Secure: true,
 	}
 
 	logins = getLogins()
