@@ -39,7 +39,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	tData.Host = r.Host
 
 	// Get session
-	session, err := store.Get(r, "test-session")
+	session, err := store.Get(r, "session")
 	if err != nil {
 		log.Println("home get session:", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -194,7 +194,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get session
-	session, err := store.Get(r, "test-session")
+	session, err := store.Get(r, "session")
 	if err != nil {
 		log.Println("upload get session:", err)
 		// TODO redirect
@@ -287,7 +287,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get session
-	session, err := store.Get(r, "test-session")
+	session, err := store.Get(r, "session")
 	if err != nil {
 		log.Println("upload get session:", err)
 		// Session logic broken, safe to continue, unable to login
@@ -515,12 +515,16 @@ var authenticated map[string]bool
 func init() {
 
 	// gorilla cookie store
-	store = sessions.NewCookieStore([]byte("something-very-secret"))
+	store = sessions.NewCookieStore([]byte("something-very-secret"),
+		[]byte("something-very-secret-1234567890"))
+
 	store.Options = &sessions.Options{
-		// Path:     "/",
-		MaxAge: 86400 * 3600,
-		// HttpOnly: true,
-		Secure: true,
+		Path:     "/",
+		MaxAge:   86400 * 3600,
+		HttpOnly: true,
+		// Secure cookie works only over secure connection (no cookie on insecure).
+		// cookie encription work over insecure connection
+		// Secure:   true,
 	}
 
 	logins = getLogins()
@@ -556,9 +560,18 @@ func main() {
 	log.Println("Running...")
 
 	// Gorilla mux
+	// go func() {
+	// 	err := http.ListenAndServeTLS(":443", "pki/server.crt", "pki/server.key",
+	// 		context.ClearHandler(http.DefaultServeMux))
+	// 	// err := http.ListenAndServe(":80", nil)
+	// 	if err != nil {
+	// 		panic("ListenAndServeTLS: " + err.Error())
+	// 	}
+	// }()
+
 	err := http.ListenAndServe(":80", context.ClearHandler(http.DefaultServeMux))
-	// err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}
+
 }
