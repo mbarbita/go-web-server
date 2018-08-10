@@ -78,7 +78,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Execute template
-	err = htmlTpl.ExecuteTemplate(w, "home-page.html", tData)
+	err = htmlTmpl.ExecuteTemplate(w, "home-page.html", tData)
 	if err != nil {
 		//in prod replace err.error() with something else
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -168,7 +168,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// Process template and write to response to client
-	err = htmlTpl.ExecuteTemplate(w, "download-page.html", tData)
+	err = htmlTmpl.ExecuteTemplate(w, "download-page.html", tData)
 	if err != nil {
 		//in prod replace err.error() with something else
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -199,6 +199,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, "test-session")
 	if err != nil {
 		log.Println("upload get session:", err)
+		// TODO redirect
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -206,16 +207,9 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	cookieuser, ok := session.Values["user"].(string)
 	if !ok {
 		log.Println("user assert failed")
-		http.Redirect(w, r, "/home.html", http.StatusSeeOther)
+		http.Redirect(w, r, "/login.html", http.StatusSeeOther)
 		return
 	}
-
-	// cookiepass, ok := session.Values["password"].(string)
-	// if !ok {
-	// 	log.Println("password assert failed")
-	// http.Redirect(w, r, "/home.html", http.StatusSeeOther)
-	// 	return
-	// }
 
 	v, ok := authenticated[cookieuser]
 
@@ -225,13 +219,11 @@ func upload(w http.ResponseWriter, r *http.Request) {
 			// loggedin = true
 		} else {
 			log.Println("not authenticated")
-			// upload not authenticated, redirect to home
-			http.Redirect(w, r, "/home.html", http.StatusSeeOther)
+			// not authenticated, redirect to login
+			http.Redirect(w, r, "/login.html", http.StatusSeeOther)
 			return
 		}
 	}
-
-	// log.Println("loggedin (should be always true):", loggedin)
 
 	if *logmore {
 		log.Println("method:", r.Method)
@@ -246,7 +238,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		// Parse templates
 		// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 
-		err := htmlTpl.ExecuteTemplate(w, "upload-page.html", tData)
+		err := htmlTmpl.ExecuteTemplate(w, "upload-page.html", tData)
 		if err != nil {
 			//in prod replace err.error() with something else
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -313,18 +305,11 @@ func login(w http.ResponseWriter, r *http.Request) {
 		// return
 	}
 
-	// cookiepass, ok := session.Values["password"].(string)
-	// if !ok {
-	// 	log.Println("password assert failed")
-	// 	return
-	// }
-
 	v, ok := authenticated[cookieuser]
 
 	if ok {
 		if v {
 			log.Println("cookie authentication ok")
-			// authenticated[logins[cookieuser]] = true
 			// already authenticated, redirect home
 			http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 		} else {
@@ -341,15 +326,11 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "GET" {
-		// crutime := time.Now().Unix()
-		// h := md5.New()
-		// io.WriteString(h, strconv.FormatInt(crutime, 10))
-		// tData.token = fmt.Sprintf("%x", h.Sum(nil))
 
 		// Parse templates
 		// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 
-		err := htmlTpl.ExecuteTemplate(w, "login-page.html", tData)
+		err := htmlTmpl.ExecuteTemplate(w, "login-page.html", tData)
 		if err != nil {
 			//in prod replace err.error() with something else
 			log.Println("template parse error")
@@ -359,15 +340,15 @@ func login(w http.ResponseWriter, r *http.Request) {
 		// not GET method
 	} else {
 
-		// Get File from POST
+		// Get credentials from POST
 		r.ParseForm()
 		log.Println("username:", r.Form["username"])
 		log.Println("password:", r.Form["password"])
 
-		formusert := r.Form["username"][0]
-		formuser := strings.Join(r.Form["username"], ",")
-		formpassword := strings.Join(r.Form["password"], ",")
-		log.Println("username:", formuser, formusert, "pass:", formpassword)
+		formuser := r.Form["username"][0]
+		formpassword := r.Form["password"][0]
+
+		log.Println("username:", formuser, "pass:", formpassword)
 
 		v, ok := logins[formuser]
 
@@ -420,7 +401,7 @@ func dirWatcher(folders ...string) {
 				}
 
 				// Parse templates
-				htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
+				htmlTmpl = template.Must(template.ParseGlob("templates/*.html"))
 			case err := <-watcher.Errors:
 				log.Println("error:", err)
 			}
@@ -502,19 +483,19 @@ func getLogins() map[string]string {
 
 	lines, err := readLines("users.txt")
 	if err != nil {
-		log.Fatalf("readLines: %s", err)
+		log.Fatalf("read lines: %s", err)
 	}
 
 	for i, line := range lines {
 		if *logmore {
-			log.Println("Readed line:", i, line)
+			log.Println("readed line:", i, line)
 		}
 		if strings.HasPrefix(line, "#") {
 			continue
 		}
 		fld := strings.Fields(line)
 		if *logmore {
-			log.Printf("Fields are: %q\n", fld)
+			log.Printf("fields: %q\n", fld)
 		}
 		logins[fld[0]] = fld[1]
 	}
@@ -528,7 +509,7 @@ func getLogins() map[string]string {
 	// }
 }
 
-var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
+var htmlTmpl = template.Must(template.ParseGlob("templates/*.html"))
 var navAll = []string{"home", "downloads", "upload", "login"}
 var store *sessions.CookieStore
 var logmore = flag.Bool("logmore", true, "false: disabled, true: enabled")
@@ -557,16 +538,13 @@ func init() {
 	}
 	if *logmore {
 		log.Println("authenticated map (init func):", authenticated)
-	}
-	// authenticated["user2"] = true
-	if *logmore {
+		// authenticated["user2"] = true
 		log.Println("auth user: authenticated map (init func):", authenticated)
 	}
 }
 
 func main() {
 
-	// loglvl := flag.Bool("loglvl", "0", "false: disabled, true: enabled")
 	flag.Parse()
 
 	//Watch template foldr
