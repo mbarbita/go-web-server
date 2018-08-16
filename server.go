@@ -27,6 +27,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 		NavAll []string
 		Host   string
 		Visits int
+		User   string
 	}
 
 	// Parse templates
@@ -57,6 +58,11 @@ func home(w http.ResponseWriter, r *http.Request) {
 		session.Values[key] = val
 		tData.Visits = val
 	}
+
+	tData.User, _ = session.Values["user"].(string)
+	// if tData.User == "" {
+	// 	tData.User = "Not logged in"
+	// }
 
 	// session.Values["user"] = "user2"
 	// session.Values["password"] = "pass2"
@@ -289,7 +295,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	// Get session
 	session, err := store.Get(r, "session")
 	if err != nil {
-		log.Println("upload get session:", err)
+		log.Println("login get session:", err)
 		// Session logic broken, safe to continue, unable to login
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		// return
@@ -369,8 +375,39 @@ func login(w http.ResponseWriter, r *http.Request) {
 				http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 				return
 			}
+		} else {
+			log.Println("form assert authentication failed")
+			http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 		}
 	}
+}
+
+func logout(w http.ResponseWriter, r *http.Request) {
+	if *logmore {
+		log.Println("=== logout ===")
+	}
+
+	// Get session
+	session, err := store.Get(r, "session")
+	if err != nil {
+		log.Println("logout get session:", err)
+		// Session logic broken, return
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	cookieuser, ok := session.Values["user"].(string)
+	if !ok {
+		log.Println("user assert failed")
+		http.Redirect(w, r, "/login.html", http.StatusSeeOther)
+		return
+	}
+
+	// logoutUser := session.Values["user"]
+	authenticated[cookieuser] = false
+	session.Options.MaxAge = -1
+	session.Save(r, w)
+	http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 }
 
 // Watch templates folder and reload templates on change
@@ -554,6 +591,7 @@ func main() {
 	http.HandleFunc("/downloads.html/", download)
 	http.HandleFunc("/upload.html/", upload)
 	http.HandleFunc("/login.html/", login)
+	http.HandleFunc("/logout.html/", logout)
 	http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir("download"))))
 	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("root"))))
 

@@ -3,7 +3,7 @@
   <div class="container">
     {{template "nav-all.html" .NavAll}}
     <h3>Home</h3>
-    <p>Visits: {{.Visits}}</p>
+    <p>{{if .User}}<strong>{{.User}}</strong> <a href="/logout.html">Logout</a>{{else}} Not Logged in{{end}}, Visits: {{.Visits}}</p>
   </div>
   </br>
   <!-- <div class="container">
