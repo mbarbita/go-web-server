@@ -257,7 +257,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer file.Close()
-		fmt.Fprintf(w, "Done: %v", handler.Filename)
+		// fmt.Fprintf(w, "Done: %v", handler.Filename)
 
 		// Save File
 		// fmt.Fprintf(w, "%v", handler.Header)
