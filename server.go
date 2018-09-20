@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/md5"
+	"crypto/sha256"
 	"flag"
 	"fmt"
 	"html/template"
@@ -43,6 +45,13 @@ func home(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, "session")
 	if err != nil {
 		log.Println("home get session:", err)
+
+		// authenticatedMap[cookieuser] = false
+		// delete(authenticatedMap, cookieuser)
+		session.Options.MaxAge = -1
+		session.Save(r, w)
+		http.Redirect(w, r, "/home.html", http.StatusSeeOther)
+
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -215,7 +224,12 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	v, ok := authenticated[cookieuser]
+	v, ok := authenticatedMap[cookieuser]
+
+	if !ok {
+		log.Println("auth map failed")
+		http.Redirect(w, r, "/login.html", http.StatusSeeOther)
+	}
 
 	if ok {
 		if v {
@@ -308,7 +322,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		// return
 	}
 
-	v, ok := authenticated[cookieuser]
+	v, ok := authenticatedMap[cookieuser]
 
 	if ok {
 		if v {
@@ -352,14 +366,14 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 		log.Println("username:", formuser, "pass:", formpassword)
 
-		v, ok := logins[formuser]
+		v, ok := loginsMap[formuser]
 
 		if ok {
 			if v == formpassword {
 				log.Println("form authentication ok")
 
 				session.Values["user"] = formuser
-				session.Values["password"] = formpassword
+				session.Values["authlvl"] = "1"
 
 				// Save it before we write to the response/return from the handler.
 				err = session.Save(r, w)
@@ -367,8 +381,8 @@ func login(w http.ResponseWriter, r *http.Request) {
 					log.Println("Session save error:", err)
 				}
 
-				authenticated[formuser] = true
-				log.Println("auth map:", authenticated)
+				authenticatedMap[formuser] = true
+				log.Println("auth map:", authenticatedMap)
 				http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 			} else {
 				log.Println("form authentication failed")
@@ -404,7 +418,8 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// logoutUser := session.Values["user"]
-	authenticated[cookieuser] = false
+	authenticatedMap[cookieuser] = false
+	// delete(authenticatedMap, cookieuser)
 	session.Options.MaxAge = -1
 	session.Save(r, w)
 	http.Redirect(w, r, "/home.html", http.StatusSeeOther)
@@ -510,9 +525,15 @@ func writeLines(lines []string, path string) error {
 	return w.Flush()
 }
 
-func getLogins() map[string]string {
+func compSum() {
+	sum := sha256.Sum256([]byte("hello world"))
+	fmt.Printf("%x", sum)
+}
 
-	var logins = make(map[string]string)
+// func getLogins() map[string]string {
+func getLogins() {
+
+	// var logins = make(map[string]string)
 
 	lines, err := readLines("users.txt")
 	if err != nil {
@@ -530,30 +551,57 @@ func getLogins() map[string]string {
 		if *logmore {
 			log.Printf("fields: %q\n", fld)
 		}
-		logins[fld[0]] = fld[1]
+		loginsMap[fld[0]] = fld[1]
 	}
 
 	if *logmore {
-		log.Println("logins map:", logins)
+		log.Println("logins map:", loginsMap)
 	}
-	return logins
+	// return logins
 	// if err := writeLines(lines, "test.out.txt"); err != nil {
 	// 	log.Fatalf("writeLines: %s", err)
 	// }
+}
+
+func lg(msgs ...interface{}) {
+	m := ""
+	for _, msg := range msgs {
+		m += fmt.Sprintf("%v, ", msg)
+	}
+	log.Println(m)
+}
+
+func lg1(msgs ...interface{}) {
+
+	m := fmt.Sprint(msgs)
+
+	logger.Print(m)
+
+	fmt.Print(&buf)
+
+	// log.Println(m[1 : len(m)-1])
 }
 
 var htmlTmpl = template.Must(template.ParseGlob("templates/*.html"))
 var navAll = []string{"home", "downloads", "upload", "login"}
 var store *sessions.CookieStore
 var logmore = flag.Bool("logmore", true, "false: disabled, true: enabled")
-var logins map[string]string
-var authenticated map[string]bool
+var loglevel = flag.Int("loglevel", 0, "loglevel 0...3")
+var loginsMap = make(map[string]string)
+var authenticatedMap = make(map[string]bool)
+
+var (
+	buf    bytes.Buffer
+	logger = log.New(&buf, "logger: ", log.Lshortfile)
+)
 
 func init() {
 
+	flag.Parse()
+
 	// gorilla cookie store
-	store = sessions.NewCookieStore([]byte("something-very-secret"),
-		[]byte("something-very-secret-1234567890"))
+	store = sessions.NewCookieStore([]byte("something-very-secret-1000000001"),
+		[]byte("something-very-secret-2000000001"))
 
 	store.Options = &sessions.Options{
 		Path:     "/",
@@ -564,25 +612,26 @@ func init() {
 		// Secure:   true,
 	}
 
-	logins = getLogins()
+	// logins = getLogins()
+	getLogins()
 	if *logmore {
-		log.Println("logins map (init func):", logins)
+		log.Println("logins map (init func):", loginsMap)
 	}
 
-	authenticated = make(map[string]bool)
-	for k, _ := range logins {
-		authenticated[k] = false
+	// authenticated = make(map[string]bool)
+	for k, _ := range loginsMap {
+		authenticatedMap[k] = false
 	}
 	if *logmore {
-		log.Println("authenticated map (init func):", authenticated)
+		log.Println("authenticated map (init func):", authenticatedMap)
 		// authenticated["user2"] = true
-		log.Println("auth user: authenticated map (init func):", authenticated)
+		log.Println("auth user: authenticated map (init func):", authenticatedMap)
 	}
 }
 
 func main() {
 
-	flag.Parse()
+	lg1("lg test", "f1", "f2", loginsMap)
 
 	//Watch template foldr
 	go dirWatcher("templates")
