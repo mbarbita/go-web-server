@@ -82,7 +82,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 		log.Println("Session save error:", err)
 	}
 	// var path = strings.Trim(r.URL.Path, "/")
-	if *logmore {
+	if logL1 {
 		log.Println("=== home ===")
 		log.Println("path:", r.URL.Path)
 		log.Println("host:", tData.Host)
@@ -124,7 +124,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	tData.NavAll = navAll
 	// tData.T = make(map[string]bool)
 	tData.host = r.Host
-	if *logmore {
+	if logL1 {
 		log.Println("=== download ===")
 		log.Println(r.URL.Path)
 	}
@@ -144,7 +144,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 		// folderURL += r.URL.Path
 	}
 
-	if *logmore {
+	if logL1 {
 		log.Println("url:", r.URL.Path)
 		log.Println("req url:", reqURL)
 		log.Println("folder path:", folderPath)
@@ -204,7 +204,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	tData.host = r.Host
 	// loggedin := false
 
-	if *logmore {
+	if logL1 {
 		log.Println("=== upload ===")
 	}
 
@@ -243,7 +243,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if *logmore {
+	if logL1 {
 		log.Println("method:", r.Method)
 	}
 
@@ -302,7 +302,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	tData.host = r.Host
 	// loggedin := false
 
-	if *logmore {
+	if logL1 {
 		log.Println("=== login ===")
 	}
 
@@ -338,7 +338,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	// log.Println("loggedin (should be always true):", loggedin)
 
-	if *logmore {
+	if logL1 {
 		log.Println("method:", r.Method)
 	}
 
@@ -397,7 +397,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
-	if *logmore {
+	if logL1 {
 		log.Println("=== logout ===")
 	}
 
@@ -438,12 +438,12 @@ func dirWatcher(folders ...string) {
 		for {
 			select {
 			case event := <-watcher.Events:
-				if *logmore {
+				if logL1 {
 					log.Println("=== dir Watcher ===")
 					log.Println("event:", event)
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					if *logmore {
+					if logL1 {
 						log.Println("modified file:", event.Name)
 					}
 				}
@@ -541,20 +541,20 @@ func getLogins() {
 	}
 
 	for i, line := range lines {
-		if *logmore {
+		if logL1 {
 			log.Println("readed line:", i, line)
 		}
 		if strings.HasPrefix(line, "#") {
 			continue
 		}
 		fld := strings.Fields(line)
-		if *logmore {
+		if logL1 {
 			log.Printf("fields: %q\n", fld)
 		}
 		loginsMap[fld[0]] = fld[1]
 	}
 
-	if *logmore {
+	if logL1 {
 		log.Println("logins map:", loginsMap)
 	}
 	// return logins
@@ -573,31 +573,42 @@ func lg(msgs ...interface{}) {
 
 func lg1(msgs ...interface{}) {
 
-	m := fmt.Sprint(msgs)
+	// m := fmt.Sprint(msgs)
 
-	logger.Print(m)
-
-	fmt.Print(&buf)
+	logger.Print(fmt.Sprint(msgs))
+	fmt.Print(&loggerBuf)
 
 	// log.Println(m[1 : len(m)-1])
 }
 
-var htmlTmpl = template.Must(template.ParseGlob("templates/*.html"))
-var navAll = []string{"home", "downloads", "upload", "login"}
-var store *sessions.CookieStore
-var logmore = flag.Bool("logmore", true, "false: disabled, true: enabled")
-var loglevel = flag.Int("loglevel", 0, "loglevel 0...3")
-var loginsMap = make(map[string]string)
-var authenticatedMap = make(map[string]bool)
-
 var (
-	buf    bytes.Buffer
-	logger = log.New(&buf, "logger: ", log.Lshortfile)
+	htmlTmpl = template.Must(template.ParseGlob("templates/*.html"))
+	navAll   = []string{"home", "downloads", "upload", "login"}
+	store    *sessions.CookieStore
+	// logMore          = flag.Bool("logmore", true, "false: disabled, true: enabled")
+	logLevel         = flag.Int("loglevel", 0, "loglevel 0...3")
+	logL0, logL1     bool
+	logL2, logL3     bool
+	loginsMap        = make(map[string]string)
+	authenticatedMap = make(map[string]bool)
+
+	logger    = log.New(&loggerBuf, "logger: ", log.Lshortfile)
+	loggerBuf bytes.Buffer
 )
 
 func init() {
 
 	flag.Parse()
+	switch *logLevel {
+	case 0:
+		logL0 = true
+	case 1:
+		logL1 = true
+	case 2:
+		logL2 = true
+	case 3:
+		logL3 = true
+	}
 
 	// gorilla cookie store
 	store = sessions.NewCookieStore([]byte("something-very-secret-1000000001"),
@@ -614,7 +625,7 @@ func init() {
 
 	// logins = getLogins()
 	getLogins()
-	if *logmore {
+	if logL1 {
 		log.Println("logins map (init func):", loginsMap)
 	}
 
@@ -622,7 +633,7 @@ func init() {
 	for k, _ := range loginsMap {
 		authenticatedMap[k] = false
 	}
-	if *logmore {
+	if logL1 {
 		log.Println("authenticated map (init func):", authenticatedMap)
 		// authenticated["user2"] = true
 		log.Println("auth user: authenticated map (init func):", authenticatedMap)
