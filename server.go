@@ -358,13 +358,13 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 		// Get credentials from POST
 		r.ParseForm()
-		log.Println("username:", r.Form["username"])
-		log.Println("password:", r.Form["password"])
+		log.Println("form username:", r.Form["username"])
+		log.Println("form password:", r.Form["password"])
 
 		formuser := r.Form["username"][0]
 		formpassword := r.Form["password"][0]
 
-		log.Println("username:", formuser, "pass:", formpassword)
+		log.Println("form username:", formuser, "form password:", formpassword)
 
 		v, ok := loginsMap[formuser]
 
@@ -612,7 +612,7 @@ func init() {
 
 	// gorilla cookie store
 	store = sessions.NewCookieStore([]byte("something-very-secret-1000000001"),
-		[]byte("something-very-secret-2000000001"))
+		[]byte("something-very-secret-1000000002"))
 
 	store.Options = &sessions.Options{
 		Path:     "/",
