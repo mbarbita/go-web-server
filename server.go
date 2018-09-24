@@ -310,17 +310,17 @@ func login(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, "session")
 	if err != nil {
 		log.Println("login get session:", err)
-		// Session logic broken, safe to continue, unable to login
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		// return
+		return
 	}
 
 	cookieuser, ok := session.Values["user"].(string)
-	if !ok {
-		// no user, continue for now
-		log.Println("user assert failed")
-		// return
-	}
+	// not needed
+	// if !ok {
+	// 	// no user, continue for now
+	// 	log.Println("user assert failed")
+	// 	// return
+	// }
 
 	v, ok := authenticatedMap[cookieuser]
 
@@ -329,11 +329,14 @@ func login(w http.ResponseWriter, r *http.Request) {
 			log.Println("cookie authentication ok")
 			// already authenticated, redirect home
 			http.Redirect(w, r, "/home.html", http.StatusSeeOther)
-		} else {
-			// login required, continue
-			log.Println("cookie authentication failed")
-			// return
 		}
+
+		//not needed
+		// } else {
+		// login required, continue
+		// log.Println("cookie authentication failed")
+		// return
+		// }
 	}
 
 	// log.Println("loggedin (should be always true):", loggedin)
@@ -358,14 +361,20 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 		// Get credentials from POST
 		r.ParseForm()
-		log.Println("form username:", r.Form["username"])
-		log.Println("form password:", r.Form["password"])
+
+		if logL1 {
+			log.Println("form username:", r.Form["username"])
+			log.Println("form password:", r.Form["password"])
+		}
 
 		formuser := r.Form["username"][0]
 		formpassword := r.Form["password"][0]
 
-		log.Println("form username:", formuser, "form password:", formpassword)
+		if logL1 {
+			log.Println("form username:", formuser, "form password:", formpassword)
+		}
 
+		//check if logins match saved logins
 		v, ok := loginsMap[formuser]
 
 		if ok {
@@ -380,7 +389,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 				if err != nil {
 					log.Println("Session save error:", err)
 				}
-
+				// mutex ?
 				authenticatedMap[formuser] = true
 				log.Println("auth map:", authenticatedMap)
 				http.Redirect(w, r, "/home.html", http.StatusSeeOther)
@@ -392,6 +401,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		} else {
 			log.Println("form assert authentication failed")
 			http.Redirect(w, r, "/home.html", http.StatusSeeOther)
+			return
 		}
 	}
 }
