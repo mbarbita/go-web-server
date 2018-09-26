@@ -53,7 +53,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 		session.Save(r, w)
 		http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		// http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -689,8 +689,9 @@ func init() {
 	}
 
 	// gorilla cookie store
-	store = sessions.NewCookieStore([]byte("something-very-secret-1000000001"),
-		[]byte("something-very-secret-1000000002"))
+	var SHA1 = sha256.Sum256([]byte("sha 1-1"))
+	var SHA2 = sha256.Sum256([]byte("sha 2-1"))
+	store = sessions.NewCookieStore(SHA1[:], SHA2[:])
 
 	store.Options = &sessions.Options{
 		Path:     "/",
