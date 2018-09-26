@@ -32,10 +32,6 @@ func home(w http.ResponseWriter, r *http.Request) {
 		User   string
 	}
 
-	// Parse templates
-	// moved to goroutine fsnotify
-	// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
-
 	// init struct
 	tData := new(TData)
 	tData.NavAll = navAll
@@ -52,8 +48,6 @@ func home(w http.ResponseWriter, r *http.Request) {
 		session.Options.MaxAge = -1
 		session.Save(r, w)
 		http.Redirect(w, r, "/home.html", http.StatusSeeOther)
-
-		// http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -70,12 +64,6 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tData.User, _ = session.Values["user"].(string)
-	// if tData.User == "" {
-	// 	tData.User = "Not logged in"
-	// }
-
-	// session.Values["user"] = "user2"
-	// session.Values["password"] = "pass2"
 
 	// Save it before we write to the response/return from the handler.
 	err = session.Save(r, w)
@@ -117,8 +105,6 @@ func download(w http.ResponseWriter, r *http.Request) {
 		T       map[string]bool
 		host    string
 	}
-	// Parse templates
-	// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 
 	// init struct
 	tData := new(TData)
@@ -129,9 +115,6 @@ func download(w http.ResponseWriter, r *http.Request) {
 		log.Println("=== download ===")
 		log.Println(r.URL.Path)
 	}
-
-	// Add some data
-	// tData.T["txt1"] = false
 
 	//Read files
 	reqURL := r.URL.Path[len("/downloads.html/"):]
@@ -210,40 +193,6 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get session
-	// session, err := store.Get(r, "session")
-	// if err != nil {
-	// 	log.Println("upload get session:", err)
-	// 	// TODO redirect
-	// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	// 	return
-	// }
-	//
-	// cookieuser, ok := session.Values["user"].(string)
-	// if !ok {
-	// 	log.Println("user assert failed")
-	// 	http.Redirect(w, r, "/login.html", http.StatusSeeOther)
-	// 	return
-	// }
-	//
-	// v, ok := authenticatedMap[cookieuser]
-	//
-	// if !ok {
-	// 	log.Println("auth map failed")
-	// 	http.Redirect(w, r, "/login.html", http.StatusSeeOther)
-	// }
-	//
-	// if ok {
-	// 	if v {
-	// 		log.Println("authenticated")
-	// 		// loggedin = true
-	// 	} else {
-	// 		log.Println("not authenticated")
-	// 		// not authenticated, redirect to login
-	// 		http.Redirect(w, r, "/login.html", http.StatusSeeOther)
-	// 		return
-	// 	}
-	// }
-
 	sok, vok := checkLogin(r, "session", "user")
 	if !sok {
 		// log.Println("upload get session:", err)
@@ -265,9 +214,6 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		h := md5.New()
 		io.WriteString(h, strconv.FormatInt(crutime, 10))
 		tData.token = fmt.Sprintf("%x", h.Sum(nil))
-
-		// Parse templates
-		// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 
 		err := htmlTmpl.ExecuteTemplate(w, "upload-page.html", tData)
 		if err != nil {
@@ -320,40 +266,6 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get session
-	// session, err := store.Get(r, "session")
-	// if err != nil {
-	// 	log.Println("login get session:", err)
-	// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	// 	return
-	// }
-	//
-	// cookieuser, ok := session.Values["user"].(string)
-	// // not needed
-	// // if !ok {
-	// // 	// no user, continue for now
-	// // 	log.Println("user assert failed")
-	// // 	// return
-	// // }
-	//
-	// v, ok := authenticatedMap[cookieuser]
-	//
-	// if ok {
-	// 	if v {
-	// 		log.Println("cookie authentication ok")
-	// 		// already authenticated, redirect home
-	// 		http.Redirect(w, r, "/home.html", http.StatusSeeOther)
-	// 	}
-	//
-	// 	//not needed
-	// 	// } else {
-	// 	// login required, continue
-	// 	// log.Println("cookie authentication failed")
-	// 	// return
-	// 	// }
-	// }
-	//
-	// // log.Println("loggedin (should be always true):", loggedin)
-
 	sok, vok := checkLogin(r, "session", "user")
 	if !sok {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -370,9 +282,6 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "GET" {
-
-		// Parse templates
-		// var htmlTpl = template.Must(template.ParseGlob("templates/*.html"))
 
 		err := htmlTmpl.ExecuteTemplate(w, "login-page.html", tData)
 		if err != nil {
@@ -487,14 +396,6 @@ func checkLogin(r *http.Request, sessionName string, sessionValue interface{}) (
 
 	//mutex ?
 	v, ok := authenticatedMap[cookieVal]
-
-	// if ok {
-	// 	if v {
-	// 		log.Println("cookie authentication ok")
-	// 		// already authenticated, redirect home
-	// 		// http.Redirect(w, r, "/home.html", http.StatusSeeOther)
-	// 	}
-	// }
 
 	if !ok || !v {
 		log.Println("not logged in or auth map err:", v, ok)
@@ -714,7 +615,6 @@ func init() {
 	}
 	if logL1 {
 		log.Println("authenticated map (init func):", authenticatedMap)
-		// authenticated["user2"] = true
 		log.Println("auth user: authenticated map (init func):", authenticatedMap)
 	}
 }
