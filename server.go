@@ -625,6 +625,7 @@ func main() {
 	http.HandleFunc("/login.html/", login)
 	http.HandleFunc("/logout.html/", logout)
 	http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir("download"))))
+	http.Handle("/img/", http.StripPrefix("/img/", http.FileServer(http.Dir("img"))))
 	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("root"))))
 
 	log.Println("Running...")
