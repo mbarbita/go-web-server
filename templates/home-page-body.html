@@ -1,37 +1,18 @@
 <body class="bg-light">
-</br>
+  </br>
   <div class="container">
     {{template "nav-all.html" .NavAll}}
     <h3>Home</h3>
-    <p>{{if .User}}<strong>{{.User}}</strong> <a href="/logout.html">Logout</a>{{else}} Not Logged in{{end}}, Visits: {{.Visits}}</p>
+    <p>{{if .User}}<strong>{{.User}}</strong> <a href="/logout.html">Logout</a>
+      {{else}} Not Logged in. <a class="btn btn-outline-primary btn-sm" href="/login.html">Login</a>{{end}} Visits: {{.Visits}}</p>
+      <img src="/img/bg-01.jpg" class="img-fluid" alt="Responsive image">
   </div>
   </br>
-  <!-- <div class="container">
-    <div class="jumbotron">
-      <h1 class="display-4">Simple web server</h1>
-      <p class="lead">This is a simple hero unit, a simple jumbotron-style component for calling extra attention to featured content or information.</p>
-      <hr class="my-4">
-      <p>It uses utility classes for typography and spacing to space content out within the larger container.</p>
-      <a class="btn btn-primary btn-lg" href="#" role="button">Learn more</a>
-    </div>
-  </div> -->
-
   <div class="container">
     <div class="row">
-      <div class="col-3">
+      <div class="col-4">
         <div class="btn-group-vertical w-100">
-          <a class="btn btn-outline-secondary w-100 text-left" href="http://{{.Host}}" target="_blank" role="button">1. Link</a>
-          <a class="btn btn-outline-secondary w-100 text-left" href="http://{{.Host}}" target="_blank" role="button">2. Link</a>
-          <a class="btn btn-outline-secondary w-100 text-left" href="http://{{.Host}}" target="_blank" role="button">3. Link</a>
           {{template "links-a.html" .Host}}
-        </div>
-      </div>
-      <div class="col-6">
-      </div>
-      <div class="col-3">
-        <div class="btn-group-vertical w-100">
-          <a class="btn btn-outline-primary w-100 text-left" href="/downloads.html" role="button">1. DL main</a>
-          <a class="btn btn-outline-primary w-100 text-left" href="/downloads.html/sub-dir" role="button">1. DL sub-dir</a>
         </div>
       </div>
     </div>
