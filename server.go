@@ -52,12 +52,24 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set some session values.
+	// key := "visits"
+	// if session.Values[key] == nil {
+	// 	session.Values[key] = 1
+	// 	tData.Visits = 1
+	// } else {
+	// 	val, _ := session.Values[key].(int)
+	// 	val++
+	// 	session.Values[key] = val
+	// 	tData.Visits = val
+	// }
+
 	key := "visits"
-	if session.Values[key] == nil {
+	val, ok := session.Values[key].(int)
+	if !ok {
 		session.Values[key] = 1
 		tData.Visits = 1
-	} else {
-		val, _ := session.Values[key].(int)
+	}
+	if ok {
 		val++
 		session.Values[key] = val
 		tData.Visits = val
@@ -86,7 +98,6 @@ func home(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
-
 }
 
 func download(w http.ResponseWriter, r *http.Request) {
@@ -170,7 +181,6 @@ func download(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
-
 }
 
 func upload(w http.ResponseWriter, r *http.Request) {
@@ -446,22 +456,6 @@ func dirWatcher(folders ...string) {
 	<-done
 }
 
-func getSessionInt(session *sessions.Session, key string) int {
-	val := 0
-	// key := "visits"
-	// if session.Values[key] == nil {
-	// session.Values[key] = 0
-	// return 0
-	// } else {
-	// val, _ := session.Values[key].(int)
-	// val++
-	// session.Values[key] = val
-	// return val
-	// }
-	// 	val, _ := session.Values[key].(int)
-	return val
-}
-
 func setSessionInt(session *sessions.Session, key string, val int) {
 	// if session.Values[key] == nil {
 	// session.Values[key] = val
@@ -509,7 +503,6 @@ func compSum() {
 	fmt.Printf("%x", sum)
 }
 
-// func getLogins() map[string]string {
 func getLogins() {
 
 	// var logins = make(map[string]string)
