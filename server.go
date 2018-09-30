@@ -62,7 +62,20 @@ func home(w http.ResponseWriter, r *http.Request) {
 		tData.Visits = val
 	}
 
-	tData.User, _ = session.Values["user"].(string)
+	//TODO check logins
+	sok, vok := checkLogin(r, "session", "user")
+	if !sok {
+		// log.Println("upload get session:", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	tData.User = ""
+	if vok {
+		// http.Redirect(w, r, "/login.html", http.StatusSeeOther)
+		tData.User, _ = session.Values["user"].(string)
+		// return
+	}
 
 	// Save it before we write to the response/return from the handler.
 	err = session.Save(r, w)
@@ -394,7 +407,7 @@ func checkLogin(r *http.Request, sessionName string, sessionValue interface{}) (
 	v, ok := authenticatedMap[cookieVal]
 
 	if !ok || !v {
-		log.Println("not logged in or auth map err:", v, ok)
+		log.Println("not logged in or auth map err:", !v, !ok)
 		authOk = false
 	}
 	return
