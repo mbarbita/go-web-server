@@ -1,11 +1,11 @@
 <body class="bg-dark">
   </br>
   <div class="container text-light">
+    <img src="/img/bg-01.jpg" class="img-fluid" alt="Responsive image">
     {{template "nav-all.html" .NavAll}}
     <h3>Home</h3>
     <p>{{if .User}}<strong>{{.User}}</strong> | <a href="/logout.html">Logout</a> |
       {{else}} Not Logged in. <a class="btn btn-outline-primary btn-sm" href="/login.html">Login</a>{{end}} Visits: {{.Visits}}</p>
-      <img src="/img/bg-01.jpg" class="img-fluid" alt="Responsive image">
   </div>
   </br>
   <div class="container text-light">
