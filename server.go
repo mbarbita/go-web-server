@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/md5"
 	"crypto/sha256"
 	"flag"
@@ -51,18 +50,6 @@ func home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set some session values.
-	// key := "visits"
-	// if session.Values[key] == nil {
-	// 	session.Values[key] = 1
-	// 	tData.Visits = 1
-	// } else {
-	// 	val, _ := session.Values[key].(int)
-	// 	val++
-	// 	session.Values[key] = val
-	// 	tData.Visits = val
-	// }
-
 	key := "visits"
 	val, ok := session.Values[key].(int)
 	if !ok {
@@ -89,7 +76,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 		log.Println("host:", tData.Host)
 
 		log.Println("session:", session)
-		val, _ := session.Values[key].(int)
+		val, _ := session.Values["visits"].(int)
 		log.Printf("visits: %v: %T\n", val, val)
 	}
 
@@ -269,7 +256,6 @@ func login(w http.ResponseWriter, r *http.Request) {
 	tData := new(TData)
 	tData.NavAll = navAll
 	tData.host = r.Host
-	// loggedin := false
 
 	if logL1 {
 		log.Println("=== login ===")
@@ -398,7 +384,7 @@ func checkLogin(r *http.Request, sessionName string, sessionValue interface{}) (
 
 	cookieVal, ok := session.Values[sessionValue].(string)
 	if !ok {
-		// no user, continue for now
+		// no user
 		log.Println("user assert failed:", cookieVal)
 		authOk = false
 		return
@@ -505,8 +491,6 @@ func compSum() {
 
 func getLogins() {
 
-	// var logins = make(map[string]string)
-
 	lines, err := readLines("users.txt")
 	if err != nil {
 		log.Fatalf("read lines: %s", err)
@@ -529,28 +513,6 @@ func getLogins() {
 	if logL1 {
 		log.Println("logins map:", loginsMap)
 	}
-	// return logins
-	// if err := writeLines(lines, "test.out.txt"); err != nil {
-	// 	log.Fatalf("writeLines: %s", err)
-	// }
-}
-
-func lg(msgs ...interface{}) {
-	m := ""
-	for _, msg := range msgs {
-		m += fmt.Sprintf("%v, ", msg)
-	}
-	log.Println(m)
-}
-
-func lg1(msgs ...interface{}) {
-
-	// m := fmt.Sprint(msgs)
-
-	logger.Print(fmt.Sprint(msgs))
-	fmt.Print(&loggerBuf)
-
-	// log.Println(m[1 : len(m)-1])
 }
 
 var (
@@ -564,8 +526,8 @@ var (
 	loginsMap        = make(map[string]string)
 	authenticatedMap = make(map[string]bool)
 
-	logger    = log.New(&loggerBuf, "logger: ", log.Lshortfile)
-	loggerBuf bytes.Buffer
+	// loggerBuf bytes.Buffer
+	// logger    = log.New(&loggerBuf, "logger: ", log.Lshortfile)
 )
 
 func init() {
@@ -608,13 +570,13 @@ func init() {
 	}
 	if logL1 {
 		log.Println("authenticated map (init func):", authenticatedMap)
-		log.Println("auth user: authenticated map (init func):", authenticatedMap)
 	}
 }
 
 func main() {
 
-	lg1("lg test", "f1", "f2", loginsMap)
+	// logger.Print(fmt.Sprint("lg test ", loginsMap))
+	// fmt.Print(&loggerBuf)
 
 	//Watch template foldr
 	go dirWatcher("templates")
@@ -644,5 +606,4 @@ func main() {
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}
-
 }
