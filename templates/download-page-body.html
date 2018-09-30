@@ -1,23 +1,23 @@
-<body class="bg-light">
+<body class="bg-dark">
   </br>
-  <div class="container">
+  <div class="container text-light">
     {{template "nav-all.html" .NavAll}}
-    <h3>Download:</h3>
+    <h3>Downloads</h3>
   </div>
   </br>
-  <div class="container">
+  <div class="container text-light bg-dark">
     <a class="btn btn-outline-primary" href="/downloads.html/" role="button">Downloads</a>
     {{range .DirList}}
     <a class="btn btn-outline-primary" href="{{.Name}}" role="button">{{.Name}}</a> {{end}}
   </div>
   </br>
-  <div class="container">
-    <ol class="list-group">
+  <div class="container text-light bg-dark">
+    <ol class="list-group text-light bg-dark">
       {{range .FList}}
-      <li class="bg-light list-group-item">
+      <li class="text-light bg-dark list-group-item">
         <div class="row">
-          <div class="col"><a class="btn btn-light btn-sm btn-block text-left" href="{{.Dir}}/{{.Name}}" role="button">
-                            <strong>{{.Index}}. {{.Name}}</strong></a></div>
+          <div class="col"><a class="btn btn-dark btn-sm btn-block text-left" href="{{.Dir}}/{{.Name}}" role="button">
+                          {{.Index}}. {{.Name}}</a></div>
           <div class="col-md-auto"><a class="btn btn-info btn-sm" href="{{.Dir}}/{{.Name}}" role="button" download>Download</a></div>
         </div>
       </li>
