@@ -118,6 +118,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 		DirList []FileElem
 		T       map[string]bool
 		host    string
+		WSHost  string
 	}
 
 	// init struct
@@ -125,6 +126,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	tData.NavAll = navAll
 	// tData.T = make(map[string]bool)
 	tData.host = r.Host
+	// tData.WSHost = "ws://" + r.Host + "/echo"
 	if logL1 {
 		log.Println("=== download ===")
 		log.Println(r.URL.Path)
@@ -193,6 +195,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		NavAll []string
 		token  string
 		host   string
+		WSHost string
 	}
 
 	// init struct
@@ -266,6 +269,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		NavAll []string
 		token  string
 		host   string
+		WSHost string
 	}
 
 	// init struct
