@@ -19,6 +19,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
+	"github.com/gorilla/websocket"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
@@ -27,6 +28,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	type TData struct {
 		NavAll []string
 		Host   string
+		WSHost string
 		Visits int
 		User   string
 	}
@@ -35,6 +37,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	tData := new(TData)
 	tData.NavAll = navAll
 	tData.Host = r.Host
+	tData.WSHost = "ws://" + r.Host + "/echo"
 
 	// Get session
 	session, err := store.Get(r, "session")
@@ -384,6 +387,41 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 }
 
+func wsEcho(w http.ResponseWriter, r *http.Request) {
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Print("upgrade:", err)
+		return
+	}
+	defer c.Close()
+
+	for {
+		mt, message, err := c.ReadMessage()
+		if err != nil {
+			log.Println("read:", err)
+			break
+		}
+		log.Printf("recv: %s", message)
+		// for {
+
+		err = c.WriteMessage(mt, message)
+		if err != nil {
+			log.Println("write:", err)
+			break
+		}
+		// time.Sleep(time.Second)
+		// }
+	}
+}
+
+// func wSocket(w http.ResponseWriter, r *http.Request) {
+// 	// homeTemplate.Execute(w, "ws://"+r.Host+"/echo")
+// 	err := htmlTmpl.ExecuteTemplate(w, "wsocket.html", "ws://"+r.Host+"/echo")
+// 	if err != nil {
+// 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// 	}
+// }
+
 func checkLogin(r *http.Request, sessionName string, sessionValue interface{}) (sessionOk, authOk bool) {
 	sessionOk, authOk = true, true
 	// Get session
@@ -431,9 +469,9 @@ func dirWatcher(folders ...string) {
 					log.Println("event:", event)
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					if logL1 {
-						log.Println("modified file:", event.Name)
-					}
+					// if logL1 {
+					log.Println("modified file:", event.Name)
+					// }
 				}
 
 				// Parse templates
@@ -530,15 +568,18 @@ func getLogins() {
 
 var (
 	htmlTmpl = template.Must(template.ParseGlob("templates/*.html"))
-	navAll   = []string{"home", "downloads", "upload", "login"}
-	store    *sessions.CookieStore
-	// logMore          = flag.Bool("logmore", true, "false: disabled, true: enabled")
-	logLevel         = flag.Int("loglevel", 0, "loglevel 0...3")
-	logL0, logL1     bool
-	logL2, logL3     bool
+
+	navAll = []string{"home", "downloads", "upload", "login"}
+	store  *sessions.CookieStore
+
+	logLevel     = flag.Int("loglevel", 0, "loglevel 0...3")
+	logL0, logL1 bool
+	logL2, logL3 bool
+
 	loginsMap        = make(map[string]string)
 	authenticatedMap = make(map[string]bool)
 
+	upgrader = websocket.Upgrader{} // use default options
 	// loggerBuf bytes.Buffer
 	// logger    = log.New(&loggerBuf, "logger: ", log.Lshortfile)
 )
@@ -599,6 +640,10 @@ func main() {
 	http.HandleFunc("/upload.html/", upload)
 	http.HandleFunc("/login.html/", login)
 	http.HandleFunc("/logout.html/", logout)
+
+	http.HandleFunc("/echo", wsEcho)
+	// http.HandleFunc("/ws", wSocket)
+
 	http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir("download"))))
 	http.Handle("/img/", http.StripPrefix("/img/", http.FileServer(http.Dir("img"))))
 	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("root"))))
