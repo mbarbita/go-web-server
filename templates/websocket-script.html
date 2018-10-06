@@ -15,6 +15,7 @@
       ws = new WebSocket("{{.}}");
       ws.onopen = function(evt) {
         print("OPEN");
+        // ws.send("OPEN");
       }
       ws.onclose = function(evt) {
         print("CLOSE");

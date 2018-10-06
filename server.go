@@ -118,7 +118,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 		DirList []FileElem
 		T       map[string]bool
 		host    string
-		WSHost  string
+		// WSHost  string
 	}
 
 	// init struct
@@ -195,7 +195,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		NavAll []string
 		token  string
 		host   string
-		WSHost string
+		// WSHost string
 	}
 
 	// init struct
@@ -269,7 +269,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		NavAll []string
 		token  string
 		host   string
-		WSHost string
+		// WSHost string
 	}
 
 	// init struct
@@ -424,6 +424,36 @@ func wsEcho(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+}
+
+func wsMessage(w http.ResponseWriter, r *http.Request) {
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Print("upgrade:", err)
+		return
+	}
+	defer c.Close()
+
+	// for {
+	// mt, message, err := c.ReadMessage()
+	// if err != nil {
+	// 	log.Println("read:", err)
+	// 	// break
+	// }
+	// log.Printf("recv: %s", message)
+	//
+
+	for {
+		response := []byte(<-wsChan)
+		mt := 1
+		err = c.WriteMessage(mt, response)
+		if err != nil {
+			log.Println("write:", err)
+			return
+		}
+		time.Sleep(time.Second)
+	}
+	// }
 }
 
 // func wSocket(w http.ResponseWriter, r *http.Request) {
@@ -664,7 +694,9 @@ func main() {
 	http.HandleFunc("/login.html/", login)
 	http.HandleFunc("/logout.html/", logout)
 
-	http.HandleFunc("/echo", wsEcho)
+	// http.HandleFunc("/echo", wsEcho)
+	http.HandleFunc("/echo", wsMessage)
+
 	// http.HandleFunc("/ws", wSocket)
 
 	http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir("download"))))
