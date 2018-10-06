@@ -406,15 +406,23 @@ func wsEcho(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		log.Printf("recv: %s", message)
-		// for {
-
-		err = c.WriteMessage(mt, message)
+		var response []byte
+		// extra := []byte{'e', 'x', 't', 'r', 'a', ' '}
+		// extra := []byte("extra text ")
+		ex := <-wsChan
+		extra := []byte(ex)
+		// fmt.Println("read chan", ex, extra)
+		for _, e := range extra {
+			response = append(response, e)
+		}
+		for _, e := range message {
+			response = append(response, e)
+		}
+		err = c.WriteMessage(mt, response)
 		if err != nil {
 			log.Println("write:", err)
 			break
 		}
-		// time.Sleep(time.Second)
-		// }
 	}
 }
 
@@ -497,6 +505,13 @@ func dirWatcher(folders ...string) {
 	<-done
 }
 
+func wsChanSend() {
+	fmt.Println("wschan running...")
+	for {
+		wsChan <- "ssssss "
+	}
+}
+
 func setSessionInt(session *sessions.Session, key string, val int) {
 	// if session.Values[key] == nil {
 	// session.Values[key] = val
@@ -576,7 +591,8 @@ var (
 	navAll = []string{"home", "downloads", "upload", "login"}
 	store  *sessions.CookieStore
 
-	logLevel     = flag.Int("loglevel", 0, "loglevel 0...3")
+	logLevel = flag.Int("loglevel", 0, "loglevel 0...3")
+
 	logL0, logL1 bool
 	logL2, logL3 bool
 
@@ -584,6 +600,7 @@ var (
 	authenticatedMap = make(map[string]bool)
 
 	upgrader = websocket.Upgrader{} // use default options
+	wsChan   = make(chan string)
 	// loggerBuf bytes.Buffer
 	// logger    = log.New(&loggerBuf, "logger: ", log.Lshortfile)
 )
@@ -638,6 +655,8 @@ func main() {
 
 	//Watch template foldr
 	go dirWatcher("templates")
+
+	go wsChanSend()
 
 	http.HandleFunc("/home.html/", home)
 	http.HandleFunc("/downloads.html/", download)
