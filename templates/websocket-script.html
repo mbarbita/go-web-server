@@ -9,6 +9,8 @@
       output.appendChild(d);
     };
     document.getElementById("open").onclick = function(evt) {
+      document.getElementById("output").innerHTML = "";
+      var i = 1;
       if (ws) {
         return false;
       }
@@ -22,6 +24,11 @@
         ws = null;
       }
       ws.onmessage = function(evt) {
+        if (i == 10) {
+          document.getElementById("output").innerHTML = "";
+          i = 1
+        }
+        i++
         print("RESPONSE: " + evt.data);
       }
       ws.onerror = function(evt) {

@@ -37,7 +37,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	tData := new(TData)
 	tData.NavAll = navAll
 	tData.Host = r.Host
-	tData.WSHost = "ws://" + r.Host + "/echo"
+	tData.WSHost = "ws://" + r.Host + "/msg"
 
 	// Get session
 	session, err := store.Get(r, "session")
@@ -211,7 +211,6 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	// Get session
 	sok, vok := checkLogin(r, "session", "user")
 	if !sok {
-		// log.Println("upload get session:", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -391,78 +390,96 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 }
 
-func wsEcho(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	defer c.Close()
-
-	for {
-		mt, message, err := c.ReadMessage()
-		if err != nil {
-			log.Println("read:", err)
-			break
-		}
-		log.Printf("recv: %s", message)
-		var response []byte
-		// extra := []byte{'e', 'x', 't', 'r', 'a', ' '}
-		// extra := []byte("extra text ")
-		ex := <-wsChan
-		extra := []byte(ex)
-		// fmt.Println("read chan", ex, extra)
-		for _, e := range extra {
-			response = append(response, e)
-		}
-		for _, e := range message {
-			response = append(response, e)
-		}
-		err = c.WriteMessage(mt, response)
-		if err != nil {
-			log.Println("write:", err)
-			break
-		}
-	}
-}
-
-func wsMessage(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	defer c.Close()
-
-	// for {
-	// mt, message, err := c.ReadMessage()
-	// if err != nil {
-	// 	log.Println("read:", err)
-	// 	// break
-	// }
-	// log.Printf("recv: %s", message)
-	//
-
-	for {
-		response := []byte(<-wsChan)
-		mt := 1
-		err = c.WriteMessage(mt, response)
-		if err != nil {
-			log.Println("write:", err)
-			return
-		}
-		time.Sleep(time.Second)
-	}
-	// }
-}
-
-// func wSocket(w http.ResponseWriter, r *http.Request) {
-// 	// homeTemplate.Execute(w, "ws://"+r.Host+"/echo")
-// 	err := htmlTmpl.ExecuteTemplate(w, "wsocket.html", "ws://"+r.Host+"/echo")
+// func wsEcho(w http.ResponseWriter, r *http.Request) {
+// 	c, err := upgrader.Upgrade(w, r, nil)
 // 	if err != nil {
-// 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// 		log.Print("upgrade:", err)
+// 		return
+// 	}
+// 	defer c.Close()
+//
+// 	for {
+// 		mt, message, err := c.ReadMessage()
+// 		if err != nil {
+// 			log.Println("read:", err)
+// 			break
+// 		}
+// 		log.Printf("recv: %s", message)
+// 		var response []byte
+// 		// extra := []byte{'e', 'x', 't', 'r', 'a', ' '}
+// 		// extra := []byte("extra text ")
+// 		ex := <-wsChan
+// 		extra := []byte(ex)
+// 		// fmt.Println("read chan", ex, extra)
+// 		for _, e := range extra {
+// 			response = append(response, e)
+// 		}
+// 		for _, e := range message {
+// 			response = append(response, e)
+// 		}
+// 		err = c.WriteMessage(mt, response)
+// 		if err != nil {
+// 			log.Println("write:", err)
+// 			break
+// 		}
 // 	}
 // }
+
+func wsMessage(w http.ResponseWriter, r *http.Request) {
+
+	// Get session
+	sok, vok := checkLogin(r, "session", "user")
+	if !sok || !vok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	cc := make(chan bool)
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Print("upgrade:", err)
+		return
+	}
+	defer c.Close()
+
+	go func(c *websocket.Conn) {
+		for {
+			_, message, err := c.ReadMessage()
+			if err != nil {
+				log.Println("read:", err)
+				cc <- true
+				return
+			}
+			log.Printf("recv: %s", message)
+		}
+	}(c)
+
+	for {
+
+		select {
+		case <-cc:
+			return
+		default:
+			response := []byte(<-wsChan)
+			mt := 1
+			err = c.WriteMessage(mt, response)
+			if err != nil {
+				log.Println("write:", err)
+				break
+			}
+			time.Sleep(time.Second)
+		}
+	}
+}
+
+func wsChanSend() {
+	fmt.Println("wschan running...")
+	i := 1
+	for {
+		wsChan <- "test: " + strconv.Itoa(i)
+		i++
+	}
+}
 
 func checkLogin(r *http.Request, sessionName string, sessionValue interface{}) (sessionOk, authOk bool) {
 	sessionOk, authOk = true, true
@@ -533,13 +550,6 @@ func dirWatcher(folders ...string) {
 	}
 	//loop forever
 	<-done
-}
-
-func wsChanSend() {
-	fmt.Println("wschan running...")
-	for {
-		wsChan <- "ssssss "
-	}
 }
 
 func setSessionInt(session *sessions.Session, key string, val int) {
@@ -695,7 +705,7 @@ func main() {
 	http.HandleFunc("/logout.html/", logout)
 
 	// http.HandleFunc("/echo", wsEcho)
-	http.HandleFunc("/echo", wsMessage)
+	http.HandleFunc("/msg", wsMessage)
 
 	// http.HandleFunc("/ws", wSocket)
 
