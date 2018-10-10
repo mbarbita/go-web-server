@@ -481,6 +481,10 @@ func wsChanSend() {
 	}
 }
 
+func status(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "Hello, world!\n")
+}
+
 func checkLogin(r *http.Request, sessionName string, sessionValue interface{}) (sessionOk, authOk bool) {
 	sessionOk, authOk = true, true
 	// Get session
@@ -708,6 +712,8 @@ func main() {
 	http.HandleFunc("/msg", wsMessage)
 
 	// http.HandleFunc("/ws", wSocket)
+
+	http.HandleFunc("/status.txt", status)
 
 	http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir("download"))))
 	http.Handle("/img/", http.StripPrefix("/img/", http.FileServer(http.Dir("img"))))
