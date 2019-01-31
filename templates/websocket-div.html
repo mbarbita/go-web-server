@@ -1,13 +1,17 @@
 <diV>
-  <p>Click "Open" to create a connection to the server,
+  <div class="alert alert-info alert-dismissible fade show" role="alert">
+    <strong>INFO:</strong> Click "Open" to create a connection to the server,
     "Send" to send a message to the server and "Close" to close the connection.
-    You can change the message and send multiple times.
-    <p>
-      <form class="mb-3">
-        <button id="open">Open</button>
-        <button id="close">Close</button>
-        <input id="input" type="text" value="Hello world!">
-          <button id="send">Send</button>
-      </form>
-      <div id="output"></div>
+    You can change the message and send multiple times. <b>Works after Login.</b>
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  <form class="mb-3">
+    <button id="open">Open</button>
+    <button id="close">Close</button>
+    <input id="input" type="text" value="Hello world!">
+    <button id="send">Send</button>
+  </form>
+  <div id="output"></div>
 </div>

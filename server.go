@@ -69,7 +69,8 @@ func home(w http.ResponseWriter, r *http.Request) {
 	sok, vok := checkLogin(r, "session", "user")
 	if !sok {
 		// log.Println("upload get session:", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
 		return
 	}
 
@@ -99,7 +100,8 @@ func home(w http.ResponseWriter, r *http.Request) {
 	// Execute template
 	err = htmlTmpl.ExecuteTemplate(w, "home-page.html", tData)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
 	}
 }
 
@@ -184,7 +186,8 @@ func download(w http.ResponseWriter, r *http.Request) {
 	// Process template and write to response to client
 	err = htmlTmpl.ExecuteTemplate(w, "download-page.html", tData)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
 	}
 }
 
@@ -211,7 +214,8 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	// Get session
 	sok, vok := checkLogin(r, "session", "user")
 	if !sok {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
 		return
 	}
 
@@ -232,7 +236,8 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 		err := htmlTmpl.ExecuteTemplate(w, "upload-page.html", tData)
 		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			http.Error(w, http.StatusText(http.StatusInternalServerError),
+				http.StatusInternalServerError)
 		}
 
 		// not GET method
@@ -249,7 +254,8 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 		// Save File
 		// fmt.Fprintf(w, "%v", handler.Header)
-		f, err := os.OpenFile("download/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		f, err := os.OpenFile("download/"+handler.Filename,
+			os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -283,7 +289,8 @@ func login(w http.ResponseWriter, r *http.Request) {
 	// Get session
 	sok, vok := checkLogin(r, "session", "user")
 	if !sok {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
 		return
 	}
 
@@ -301,7 +308,8 @@ func login(w http.ResponseWriter, r *http.Request) {
 		err := htmlTmpl.ExecuteTemplate(w, "login-page.html", tData)
 		if err != nil {
 			log.Println("template parse error")
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			http.Error(w, http.StatusText(http.StatusInternalServerError),
+				http.StatusInternalServerError)
 		}
 
 		// not GET method
@@ -310,7 +318,8 @@ func login(w http.ResponseWriter, r *http.Request) {
 		session, err := store.Get(r, "session")
 		if err != nil {
 			log.Println("login get session:", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			http.Error(w, http.StatusText(http.StatusInternalServerError),
+				http.StatusInternalServerError)
 			return
 		}
 
@@ -371,7 +380,8 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("logout get session:", err)
 		// Session logic broken, return
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
 		return
 	}
 
@@ -430,7 +440,8 @@ func wsMessage(w http.ResponseWriter, r *http.Request) {
 	// Get session
 	sok, vok := checkLogin(r, "session", "user")
 	if !sok || !vok {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
 		return
 	}
 
@@ -485,7 +496,8 @@ func status(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Hello, world!\n")
 }
 
-func checkLogin(r *http.Request, sessionName string, sessionValue interface{}) (sessionOk, authOk bool) {
+func checkLogin(r *http.Request, sessionName string,
+	sessionValue interface{}) (sessionOk, authOk bool) {
 	sessionOk, authOk = true, true
 	// Get session
 	session, err := store.Get(r, sessionName)
@@ -684,7 +696,7 @@ func init() {
 	}
 
 	// authenticated = make(map[string]bool)
-	for k, _ := range loginsMap {
+	for k := range loginsMap {
 		authenticatedMap[k] = false
 	}
 	if logL1 {
@@ -715,9 +727,12 @@ func main() {
 
 	http.HandleFunc("/status.txt", status)
 
-	http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir("download"))))
-	http.Handle("/img/", http.StripPrefix("/img/", http.FileServer(http.Dir("img"))))
-	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("root"))))
+	http.Handle("/download/", http.StripPrefix("/download/",
+		http.FileServer(http.Dir("download"))))
+	http.Handle("/img/", http.StripPrefix("/img/",
+		http.FileServer(http.Dir("img"))))
+	http.Handle("/", http.StripPrefix("/",
+		http.FileServer(http.Dir("root"))))
 
 	log.Println("Running...")
 
