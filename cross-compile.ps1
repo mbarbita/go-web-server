@@ -1,17 +1,18 @@
-#$env:GOOS="linux"
-#$env:GOARCH="arm"
-#$env:GOARM="7"
-
-$osArray = "windows","linux"
 $archArray = "386","amd64"
-foreach ($os in $osArray)
-{
+
 foreach ($arch in $archArray)
 {
-	echo "compile: "$os"-"$arch
+	$pre="go-web-server-"
+	
+	$os="windows"
 	$env:GOOS=$os
 	$env:GOARCH=$arch
+	echo "compile: "$os"-"$arch
+	go build -o $pre$env:GOOS"-"$env:GOARCH".exe"
 
-go build -o $env:GOOS"-"$env:GOARCH
-}
+	$os="linux"
+	$env:GOOS=$os
+	$env:GOARCH=$arch
+	echo "compile: "$os"-"$arch
+	go build -o $pre$env:GOOS"-"$env:GOARCH
 }
