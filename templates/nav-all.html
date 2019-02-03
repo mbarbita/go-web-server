@@ -5,26 +5,25 @@
   </button>
   <div class="collapse navbar-collapse" id="navbarNav">
     <ul class="navbar-nav mr-auto">
-      <!-- <li class="nav-item">
-        <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
-      </li> -->
-      <!-- <li class="nav-item">
-        <a class="nav-link" href="#">Features</a>
-      </li> -->
-      {{range .}}
       <li class="nav-item">
-        <a class="nav-link" style="text-transform: capitalize;" href="/{{.}}.html">{{.}}</a>
+        <a class="nav-link" style="text-transform: capitalize;" href="/home.html">home</a>
       </li>
-      {{end}}
-      <!-- <li class="nav-item">
-        <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a>
-      </li> -->
-    </ul>
 
-    <!-- <form class="form-inline my-2 my-lg-0">
-      <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-      <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-    </form> -->
+      <li class="nav-item">
+        <a class="nav-link" style="text-transform: capitalize;" href="/downloads.html">downloads</a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link" style="text-transform: capitalize;" href="/upload.html">upload</a>
+      </li>
+
+    </ul>
+    {{if .}}
+    <form class="form-inline my-2 my-lg-0">
+      <div class="my-2 my-sm-0">{{if .}}<a class="btn btn-outline-primary" href="/logout.html">Logout: <strong>{{.}}</strong></a>
+        {{else}}<a class="btn btn-outline-primary" href="/login.html">Login</a>{{end}}</div>
+    </form>
+    {{end}}
 
   </div>
 </nav>

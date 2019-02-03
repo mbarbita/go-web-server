@@ -20,13 +20,15 @@ import (
 	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
 	"github.com/gorilla/websocket"
+
+	cfgutils "github.com/mbarbita/golib-cfgutils"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
 
 	// Define a struct for sending data to templates
 	type TData struct {
-		NavAll []string
+		// NavAll []string
 		Host   string
 		WSHost string
 		Visits int
@@ -35,7 +37,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 	// init struct
 	tData := new(TData)
-	tData.NavAll = navAll
+	// tData.NavAll = navAll
 	tData.Host = r.Host
 	tData.WSHost = "ws://" + r.Host + "/msg"
 
@@ -65,10 +67,10 @@ func home(w http.ResponseWriter, r *http.Request) {
 		tData.Visits = val
 	}
 
-	//TODO check logins
+	// check logins
 	sok, vok := checkLogin(r, "session", "user")
 	if !sok {
-		// log.Println("upload get session:", err)
+		// log.Println("home get session:", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError),
 			http.StatusInternalServerError)
 		return
@@ -115,7 +117,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type TData struct {
-		NavAll  []string
+		// NavAll  []string
 		FList   []FileElem
 		DirList []FileElem
 		T       map[string]bool
@@ -125,7 +127,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 
 	// init struct
 	tData := new(TData)
-	tData.NavAll = navAll
+	// tData.NavAll = navAll
 	// tData.T = make(map[string]bool)
 	tData.host = r.Host
 	// tData.WSHost = "ws://" + r.Host + "/echo"
@@ -195,15 +197,15 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 	// Define a struct for sending data to templates
 	type TData struct {
-		NavAll []string
-		token  string
-		host   string
+		// NavAll []string
+		token string
+		host  string
 		// WSHost string
 	}
 
 	// init struct
 	tData := new(TData)
-	tData.NavAll = navAll
+	// tData.NavAll = navAll
 	tData.host = r.Host
 	// loggedin := false
 
@@ -271,15 +273,15 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	// Define a struct for sending data to templates
 	type TData struct {
-		NavAll []string
-		token  string
-		host   string
+		// NavAll []string
+		token string
+		host  string
 		// WSHost string
 	}
 
 	// init struct
 	tData := new(TData)
-	tData.NavAll = navAll
+	// tData.NavAll = navAll
 	tData.host = r.Host
 
 	if logL1 {
@@ -642,10 +644,12 @@ func getLogins() {
 }
 
 var (
+	cfgMap = cfgutils.ReadCfgFile("cfg.ini")
+
 	htmlTmpl = template.Must(template.ParseGlob("templates/*.html"))
 
-	navAll = []string{"home", "downloads", "upload", "login"}
-	store  *sessions.CookieStore
+	//navAll = []string{"home", "downloads", "upload", "login"}
+	store *sessions.CookieStore
 
 	logLevel = flag.Int("loglevel", 0, "loglevel 0...3")
 
