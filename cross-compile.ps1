@@ -2,8 +2,8 @@ $archArray = "386","amd64"
 
 foreach ($arch in $archArray)
 {
-	$pre="go-web-server-"
-	
+	$pre="server-"
+
 	$os="windows"
 	$env:GOOS=$os
 	$env:GOARCH=$arch

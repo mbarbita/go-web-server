@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"crypto/md5"
 	"crypto/sha256"
-	"flag"
 	"fmt"
 	"html/template"
 	"io"
@@ -13,20 +12,21 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
 	"github.com/gorilla/websocket"
+
+	cfgutils "github.com/mbarbita/golib-cfgutils"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
 
 	// Define a struct for sending data to templates
 	type TData struct {
-		NavAll []string
+		// NavAll []string
 		Host   string
 		WSHost string
 		Visits int
@@ -35,12 +35,13 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 	// init struct
 	tData := new(TData)
-	tData.NavAll = navAll
+	// tData.NavAll = navAll
 	tData.Host = r.Host
 	tData.WSHost = "ws://" + r.Host + "/msg"
 
 	// Get session
-	session, err := store.Get(r, "session")
+	// session, err := store.Get(r, "session")
+	session, err := store.Get(r, cfgMap["session name"])
 	if err != nil {
 		log.Println("home get session:", err)
 
@@ -65,10 +66,10 @@ func home(w http.ResponseWriter, r *http.Request) {
 		tData.Visits = val
 	}
 
-	//TODO check logins
-	sok, vok := checkLogin(r, "session", "user")
+	// check logins
+	sok, vok := checkLogin(r, cfgMap["session name"], "user")
 	if !sok {
-		// log.Println("upload get session:", err)
+		// log.Println("home get session:", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError),
 			http.StatusInternalServerError)
 		return
@@ -115,17 +116,18 @@ func download(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type TData struct {
-		NavAll  []string
+		// NavAll  []string
 		FList   []FileElem
 		DirList []FileElem
 		T       map[string]bool
 		host    string
+		User    string
 		// WSHost  string
 	}
 
 	// init struct
 	tData := new(TData)
-	tData.NavAll = navAll
+	// tData.NavAll = navAll
 	// tData.T = make(map[string]bool)
 	tData.host = r.Host
 	// tData.WSHost = "ws://" + r.Host + "/echo"
@@ -133,6 +135,35 @@ func download(w http.ResponseWriter, r *http.Request) {
 		log.Println("=== download ===")
 		log.Println(r.URL.Path)
 	}
+
+	// Get session
+	session, err := store.Get(r, cfgMap["session name"])
+	if err != nil {
+		log.Println("home get session:", err)
+
+		// authenticatedMap[cookieuser] = false
+		// delete(authenticatedMap, cookieuser)
+		// TODO: clear maps ?
+		session.Options.MaxAge = -1
+		session.Save(r, w)
+		http.Redirect(w, r, "/home.html", http.StatusSeeOther)
+		return
+	}
+
+	sok, vok := checkLogin(r, cfgMap["session name"], "user")
+	if !sok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
+		return
+	}
+
+	tData.User = ""
+	if !vok {
+		http.Redirect(w, r, "/login.html", http.StatusSeeOther)
+		return
+	}
+
+	tData.User, _ = session.Values["user"].(string)
 
 	//Read files
 	reqURL := r.URL.Path[len("/downloads.html/"):]
@@ -159,7 +190,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Redirect(w, r, "/downloads.html", http.StatusNotFound)
 		return
-		log.Fatal(err)
+		// log.Fatal(err)
 	}
 
 	// Add files and folders to separae slices of [index, name, folderURL]
@@ -195,15 +226,16 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 	// Define a struct for sending data to templates
 	type TData struct {
-		NavAll []string
-		token  string
-		host   string
+		// NavAll []string
+		token string
+		host  string
+		User  string
 		// WSHost string
 	}
 
 	// init struct
 	tData := new(TData)
-	tData.NavAll = navAll
+	// tData.NavAll = navAll
 	tData.host = r.Host
 	// loggedin := false
 
@@ -212,17 +244,33 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get session
-	sok, vok := checkLogin(r, "session", "user")
+	session, err := store.Get(r, cfgMap["session name"])
+	if err != nil {
+		log.Println("home get session:", err)
+
+		// authenticatedMap[cookieuser] = false
+		// delete(authenticatedMap, cookieuser)
+		// TODO: clear maps ?
+		session.Options.MaxAge = -1
+		session.Save(r, w)
+		http.Redirect(w, r, "/home.html", http.StatusSeeOther)
+		return
+	}
+
+	sok, vok := checkLogin(r, cfgMap["session name"], "user")
 	if !sok {
 		http.Error(w, http.StatusText(http.StatusInternalServerError),
 			http.StatusInternalServerError)
 		return
 	}
 
+	tData.User = ""
 	if !vok {
 		http.Redirect(w, r, "/login.html", http.StatusSeeOther)
 		return
 	}
+
+	tData.User, _ = session.Values["user"].(string)
 
 	if logL1 {
 		log.Println("method:", r.Method)
@@ -271,15 +319,15 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	// Define a struct for sending data to templates
 	type TData struct {
-		NavAll []string
-		token  string
-		host   string
+		// NavAll []string
+		token string
+		host  string
 		// WSHost string
 	}
 
 	// init struct
 	tData := new(TData)
-	tData.NavAll = navAll
+	// tData.NavAll = navAll
 	tData.host = r.Host
 
 	if logL1 {
@@ -287,7 +335,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get session
-	sok, vok := checkLogin(r, "session", "user")
+	sok, vok := checkLogin(r, cfgMap["session name"], "user")
 	if !sok {
 		http.Error(w, http.StatusText(http.StatusInternalServerError),
 			http.StatusInternalServerError)
@@ -315,7 +363,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		// not GET method
 	} else {
 
-		session, err := store.Get(r, "session")
+		session, err := store.Get(r, cfgMap["session name"])
 		if err != nil {
 			log.Println("login get session:", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError),
@@ -339,7 +387,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		//check if logins match saved logins
-		v, ok := loginsMap[formuser]
+		v, ok := usersMap[formuser]
 
 		if ok {
 			if v == formpassword {
@@ -355,7 +403,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 				}
 				// mutex ?
 				authenticatedMap[formuser] = true
-				log.Println("auth map:", authenticatedMap)
+				if logL1 {
+					log.Println("auth map:", authenticatedMap)
+				}
 				http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 			} else {
 				log.Println("form authentication failed")
@@ -376,7 +426,7 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get session
-	session, err := store.Get(r, "session")
+	session, err := store.Get(r, cfgMap["session name"])
 	if err != nil {
 		log.Println("logout get session:", err)
 		// Session logic broken, return
@@ -438,7 +488,7 @@ func logout(w http.ResponseWriter, r *http.Request) {
 func wsMessage(w http.ResponseWriter, r *http.Request) {
 
 	// Get session
-	sok, vok := checkLogin(r, "session", "user")
+	sok, vok := checkLogin(r, cfgMap["session name"], "user")
 	if !sok || !vok {
 		http.Error(w, http.StatusText(http.StatusInternalServerError),
 			http.StatusInternalServerError)
@@ -615,44 +665,19 @@ func compSum() {
 	fmt.Printf("%x", sum)
 }
 
-func getLogins() {
-
-	lines, err := readLines("users.txt")
-	if err != nil {
-		log.Fatalf("read lines: %s", err)
-	}
-
-	for i, line := range lines {
-		if logL1 {
-			log.Println("readed line:", i, line)
-		}
-		if strings.HasPrefix(line, "#") {
-			continue
-		}
-		fld := strings.Fields(line)
-		if logL1 {
-			log.Printf("fields: %q\n", fld)
-		}
-		loginsMap[fld[0]] = fld[1]
-	}
-
-	if logL1 {
-		log.Println("logins map:", loginsMap)
-	}
-}
-
 var (
+	cfgMap   = cfgutils.ReadCfgFile("cfg.ini", true)
+	usersMap = cfgutils.ReadCfgFile("users.txt", true)
+
 	htmlTmpl = template.Must(template.ParseGlob("templates/*.html"))
 
-	navAll = []string{"home", "downloads", "upload", "login"}
-	store  *sessions.CookieStore
-
-	logLevel = flag.Int("loglevel", 0, "loglevel 0...3")
+	//navAll = []string{"home", "downloads", "upload", "login"}
+	store *sessions.CookieStore
 
 	logL0, logL1 bool
 	logL2, logL3 bool
 
-	loginsMap        = make(map[string]string)
+	// loginsMap        = make(map[string]string)
 	authenticatedMap = make(map[string]bool)
 
 	upgrader = websocket.Upgrader{} // use default options
@@ -663,17 +688,30 @@ var (
 
 func init() {
 
-	flag.Parse()
-	switch *logLevel {
-	case 0:
+	switch cfgMap["log level"] {
+	case "0":
 		logL0 = true
-	case 1:
+		log.Println("Log level: 0")
+	case "1":
 		logL1 = true
-	case 2:
+		log.Println("Log level: 1")
+	case "2":
 		logL2 = true
-	case 3:
+		log.Println("Log level: 2")
+	case "3":
 		logL3 = true
+		log.Println("Log level: 3")
 	}
+
+	// if cfgMap["logl0"] == "1" {
+	// 	logL0 = true
+	// 	log.Println("Log level 0")
+	// }
+	//
+	// if cfgMap["logl1"] == "1" {
+	// 	logL1 = true
+	// 	log.Println("Log level 1")
+	// }
 
 	// gorilla cookie store
 	var SHA1 = sha256.Sum256([]byte("sha 1-1"))
@@ -690,13 +728,14 @@ func init() {
 	}
 
 	// logins = getLogins()
-	getLogins()
+	// getLogins()
+
 	if logL1 {
-		log.Println("logins map (init func):", loginsMap)
+		log.Println("logins map (init func):", usersMap)
 	}
 
 	// authenticated = make(map[string]bool)
-	for k := range loginsMap {
+	for k := range usersMap {
 		authenticatedMap[k] = false
 	}
 	if logL1 {
