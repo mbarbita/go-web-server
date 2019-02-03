@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -122,6 +121,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 		DirList []FileElem
 		T       map[string]bool
 		host    string
+		User    string
 		// WSHost  string
 	}
 
@@ -135,6 +135,35 @@ func download(w http.ResponseWriter, r *http.Request) {
 		log.Println("=== download ===")
 		log.Println(r.URL.Path)
 	}
+
+	// Get session
+	session, err := store.Get(r, "session")
+	if err != nil {
+		log.Println("home get session:", err)
+
+		// authenticatedMap[cookieuser] = false
+		// delete(authenticatedMap, cookieuser)
+		// TODO: clear maps ?
+		session.Options.MaxAge = -1
+		session.Save(r, w)
+		http.Redirect(w, r, "/home.html", http.StatusSeeOther)
+		return
+	}
+
+	sok, vok := checkLogin(r, "session", "user")
+	if !sok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
+		return
+	}
+
+	tData.User = ""
+	if !vok {
+		http.Redirect(w, r, "/login.html", http.StatusSeeOther)
+		return
+	}
+
+	tData.User, _ = session.Values["user"].(string)
 
 	//Read files
 	reqURL := r.URL.Path[len("/downloads.html/"):]
@@ -200,6 +229,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		// NavAll []string
 		token string
 		host  string
+		User  string
 		// WSHost string
 	}
 
@@ -214,6 +244,19 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get session
+	session, err := store.Get(r, "session")
+	if err != nil {
+		log.Println("home get session:", err)
+
+		// authenticatedMap[cookieuser] = false
+		// delete(authenticatedMap, cookieuser)
+		// TODO: clear maps ?
+		session.Options.MaxAge = -1
+		session.Save(r, w)
+		http.Redirect(w, r, "/home.html", http.StatusSeeOther)
+		return
+	}
+
 	sok, vok := checkLogin(r, "session", "user")
 	if !sok {
 		http.Error(w, http.StatusText(http.StatusInternalServerError),
@@ -221,10 +264,13 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tData.User = ""
 	if !vok {
 		http.Redirect(w, r, "/login.html", http.StatusSeeOther)
 		return
 	}
+
+	tData.User, _ = session.Values["user"].(string)
 
 	if logL1 {
 		log.Println("method:", r.Method)
@@ -341,7 +387,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		//check if logins match saved logins
-		v, ok := loginsMap[formuser]
+		v, ok := usersMap[formuser]
 
 		if ok {
 			if v == formpassword {
@@ -617,34 +663,35 @@ func compSum() {
 	fmt.Printf("%x", sum)
 }
 
-func getLogins() {
+// func getLogins() {
+//
+// 	lines, err := readLines("users.txt")
+// 	if err != nil {
+// 		log.Fatalf("read lines: %s", err)
+// 	}
+//
+// 	for i, line := range lines {
+// 		if logL1 {
+// 			log.Println("readed line:", i, line)
+// 		}
+// 		if strings.HasPrefix(line, "#") {
+// 			continue
+// 		}
+// 		fld := strings.Fields(line)
+// 		if logL1 {
+// 			log.Printf("fields: %q\n", fld)
+// 		}
+// 		loginsMap[fld[0]] = fld[1]
+// 	}
 
-	lines, err := readLines("users.txt")
-	if err != nil {
-		log.Fatalf("read lines: %s", err)
-	}
-
-	for i, line := range lines {
-		if logL1 {
-			log.Println("readed line:", i, line)
-		}
-		if strings.HasPrefix(line, "#") {
-			continue
-		}
-		fld := strings.Fields(line)
-		if logL1 {
-			log.Printf("fields: %q\n", fld)
-		}
-		loginsMap[fld[0]] = fld[1]
-	}
-
-	if logL1 {
-		log.Println("logins map:", loginsMap)
-	}
-}
+// 	if logL1 {
+// 		log.Println("logins map:", loginsMap)
+// 	}
+// }
 
 var (
-	cfgMap = cfgutils.ReadCfgFile("cfg.ini")
+	cfgMap   = cfgutils.ReadCfgFile("cfg.ini", true)
+	usersMap = cfgutils.ReadCfgFile("users.txt", true)
 
 	htmlTmpl = template.Must(template.ParseGlob("templates/*.html"))
 
@@ -656,7 +703,7 @@ var (
 	logL0, logL1 bool
 	logL2, logL3 bool
 
-	loginsMap        = make(map[string]string)
+	// loginsMap        = make(map[string]string)
 	authenticatedMap = make(map[string]bool)
 
 	upgrader = websocket.Upgrader{} // use default options
@@ -694,13 +741,14 @@ func init() {
 	}
 
 	// logins = getLogins()
-	getLogins()
+	// getLogins()
+
 	if logL1 {
-		log.Println("logins map (init func):", loginsMap)
+		log.Println("logins map (init func):", usersMap)
 	}
 
 	// authenticated = make(map[string]bool)
-	for k := range loginsMap {
+	for k := range usersMap {
 		authenticatedMap[k] = false
 	}
 	if logL1 {
