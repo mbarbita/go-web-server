@@ -54,17 +54,17 @@ func home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := "visits"
-	val, ok := session.Values[key].(int)
-	if !ok {
-		session.Values[key] = 1
-		tData.Visits = 1
-	}
-	if ok {
-		val++
-		session.Values[key] = val
-		tData.Visits = val
-	}
+	// key := "visits"
+	// val, ok := session.Values[key].(int)
+	// if !ok {
+	// 	session.Values[key] = 1
+	// 	tData.Visits = 1
+	// }
+	// if ok {
+	// 	val++
+	// 	session.Values[key] = val
+	// 	tData.Visits = val
+	// }
 
 	// check logins
 	sok, vok := checkLogin(r, cfgMap["session name"], "user")
@@ -120,7 +120,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 		FList   []FileElem
 		DirList []FileElem
 		T       map[string]bool
-		host    string
+		Host    string
 		User    string
 		// WSHost  string
 	}
@@ -129,7 +129,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	tData := new(TData)
 	// tData.NavAll = navAll
 	// tData.T = make(map[string]bool)
-	tData.host = r.Host
+	tData.Host = r.Host
 	// tData.WSHost = "ws://" + r.Host + "/echo"
 	if logL1 {
 		log.Println("=== download ===")
@@ -139,7 +139,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	// Get session
 	session, err := store.Get(r, cfgMap["session name"])
 	if err != nil {
-		log.Println("home get session:", err)
+		log.Println("download get session:", err)
 
 		// authenticatedMap[cookieuser] = false
 		// delete(authenticatedMap, cookieuser)
@@ -227,8 +227,8 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	// Define a struct for sending data to templates
 	type TData struct {
 		// NavAll []string
-		token string
-		host  string
+		Token string
+		Host  string
 		User  string
 		// WSHost string
 	}
@@ -236,7 +236,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	// init struct
 	tData := new(TData)
 	// tData.NavAll = navAll
-	tData.host = r.Host
+	tData.Host = r.Host
 	// loggedin := false
 
 	if logL1 {
@@ -246,7 +246,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	// Get session
 	session, err := store.Get(r, cfgMap["session name"])
 	if err != nil {
-		log.Println("home get session:", err)
+		log.Println("upload get session:", err)
 
 		// authenticatedMap[cookieuser] = false
 		// delete(authenticatedMap, cookieuser)
@@ -280,7 +280,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		crutime := time.Now().Unix()
 		h := md5.New()
 		io.WriteString(h, strconv.FormatInt(crutime, 10))
-		tData.token = fmt.Sprintf("%x", h.Sum(nil))
+		tData.Token = fmt.Sprintf("%x", h.Sum(nil))
 
 		err := htmlTmpl.ExecuteTemplate(w, "upload-page.html", tData)
 		if err != nil {
@@ -320,15 +320,15 @@ func login(w http.ResponseWriter, r *http.Request) {
 	// Define a struct for sending data to templates
 	type TData struct {
 		// NavAll []string
-		token string
-		host  string
+		Token string
+		Host  string
 		// WSHost string
 	}
 
 	// init struct
 	tData := new(TData)
 	// tData.NavAll = navAll
-	tData.host = r.Host
+	tData.Host = r.Host
 
 	if logL1 {
 		log.Println("=== login ===")
