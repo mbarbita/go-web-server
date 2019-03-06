@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -516,14 +517,14 @@ func wsMessage(w http.ResponseWriter, r *http.Request) {
 	}(c)
 
 	for {
-
 		select {
 		case <-cc:
 			return
 		default:
 			response := []byte(<-wsChan)
-			mt := 1
-			err = c.WriteMessage(mt, response)
+			response = append(response, ", custom msg"...)
+			mestype := 1
+			err = c.WriteMessage(mestype, response)
 			if err != nil {
 				log.Println("write:", err)
 				break
@@ -534,11 +535,73 @@ func wsMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func wsChanSend() {
-	fmt.Println("wschan running...")
+	log.Println("wschan running...")
 	i := 1
 	for {
+		// send stuff to clients
+		// TODO: solve multiple clients connecting
 		wsChan <- "test: " + strconv.Itoa(i)
 		i++
+	}
+}
+
+func readSensors() {
+	// Listen on TCP port 2000 on all available unicast and
+	// anycast IP addresses of the local system.
+	l, err := net.Listen("tcp", ":5000")
+	if err != nil {
+		log.Fatal("listen :5000 err:", err)
+	}
+	defer l.Close()
+	log.Println("listening on :5000 for sensors...")
+	for {
+		// Wait for a connection.
+		conn, err := l.Accept()
+		if err != nil {
+			log.Fatal(err)
+		}
+		// Handle the connection in a new goroutine.
+		// The loop then returns to accepting, so that
+		// multiple connections may be served concurrently.
+		go func(c net.Conn) {
+			// Echo all incoming data.
+			r := bufio.NewReader(c)
+			// for {
+			line, err := r.ReadBytes(byte('\n'))
+			switch err {
+			case nil:
+				break
+			case io.EOF:
+			default:
+				fmt.Println("ERROR", err)
+			}
+			log.Println("reading from sensor:", string(line))
+			// 	conn.Write(line)
+			// }
+
+			fmt.Println("local:", c.LocalAddr(), "remote:", c.RemoteAddr())
+			// io.Copy(c, c)
+			c.Write([]byte("its aliveee!\n"))
+			// Shut down the connection.
+			c.Close()
+		}(conn)
+	}
+}
+
+func simpleDial() {
+
+	// connect to this socket
+	conn, _ := net.Dial("tcp", "127.0.0.1:5000")
+	for {
+		// read in input from stdin
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Text to send: ")
+		text, _ := reader.ReadString('\n')
+		// send to socket
+		fmt.Fprintf(conn, text+"\n")
+		// listen for reply
+		message, _ := bufio.NewReader(conn).ReadString('\n')
+		fmt.Print("Message from server: " + message)
 	}
 }
 
@@ -752,6 +815,8 @@ func main() {
 	go dirWatcher("templates")
 
 	go wsChanSend()
+	go readSensors()
+	go simpleDial()
 
 	http.HandleFunc("/home.html/", home)
 	http.HandleFunc("/downloads.html/", download)
