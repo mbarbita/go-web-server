@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -39,7 +40,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	tData := new(TData)
 	// tData.NavAll = navAll
 	tData.Host = r.Host
-	tData.WSHost = "ws://" + r.Host + "/msg"
+	tData.WSHost = "ws://" + r.Host + "/msg/"
 
 	// Get session
 	// session, err := store.Get(r, "session")
@@ -524,7 +525,8 @@ func wsMessage(w http.ResponseWriter, r *http.Request) {
 		default:
 			response := []byte(<-wsChan)
 			// response = append(response, ", Sensor: "...)
-			response = append(response, (" Sensor: " + gSensorVal[1])...)
+			response = append(response, (" Sensor: " + gSensorVal[1] +
+				" | " + gSensorVal[2])...)
 			mestype := 1
 			err = c.WriteMessage(mestype, response)
 			if err != nil {
@@ -578,12 +580,23 @@ func readSensors() {
 				break
 			case io.EOF:
 			default:
-				fmt.Println("ERROR", err)
+				fmt.Println("readbytes err:", err)
 			}
-			log.Println("reading from sensor:", string(line))
-			lock.Lock()
-			gSensorVal[1] = string(line)
-			lock.Unlock()
+			lineStr := string(line)
+			fields1 := strings.Split(strings.TrimSpace(lineStr), ";")
+			log.Println("reading from sensor:", lineStr)
+			if fields1[0] == "A01" {
+				lock.Lock()
+				gSensorVal[1] = lineStr
+				lock.Unlock()
+			}
+
+			if fields1[0] == "A02" {
+				lock.Lock()
+				gSensorVal[2] = lineStr
+				lock.Unlock()
+			}
+
 			// 	conn.Write(line)
 			// }
 
@@ -613,18 +626,13 @@ func simpleDial() {
 	}
 }
 
-func simpleDial2() {
+func simpleDial2(msg string) {
 
 	for {
 		// connect to this socket
 		conn, _ := net.Dial("tcp", "127.0.0.1:5000")
-		aaa := "A01; Val1: 123; Val2: 234.5; Val3: dada;\n"
-		// read in input from stdin
-		// reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Text to send: ")
-		// text, _ := reader.ReadString('\n')
 		// send to socket
-		fmt.Fprintf(conn, aaa)
+		fmt.Fprintf(conn, msg+"\n")
 		// listen for reply
 		message, _ := bufio.NewReader(conn).ReadString('\n')
 		fmt.Print("Message from server: " + message)
@@ -847,7 +855,11 @@ func main() {
 
 	go wsChanSend()
 	go readSensors()
-	go simpleDial2()
+	go simpleDial2("A01; Val1: 123; Val2: 234.5; Val3: dada;")
+	go simpleDial2("A02; Val1: 678; Val2: 666.2; Val3: nunu;")
+	// go func() {
+	// time.Sleep(2 * time.Second)
+	// }()
 
 	http.HandleFunc("/home.html/", home)
 	http.HandleFunc("/downloads.html/", download)
@@ -856,7 +868,7 @@ func main() {
 	http.HandleFunc("/logout.html/", logout)
 
 	// http.HandleFunc("/echo", wsEcho)
-	http.HandleFunc("/msg", wsMessage)
+	http.HandleFunc("/msg/", wsMessage)
 
 	// http.HandleFunc("/ws", wSocket)
 
