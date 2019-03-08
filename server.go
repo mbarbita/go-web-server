@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -522,7 +523,8 @@ func wsMessage(w http.ResponseWriter, r *http.Request) {
 			return
 		default:
 			response := []byte(<-wsChan)
-			response = append(response, ", custom msg"...)
+			// response = append(response, ", Sensor: "...)
+			response = append(response, (" Sensor: " + gSensorVal[1])...)
 			mestype := 1
 			err = c.WriteMessage(mestype, response)
 			if err != nil {
@@ -544,6 +546,9 @@ func wsChanSend() {
 		i++
 	}
 }
+
+var lock sync.Mutex
+var gSensorVal map[int]string
 
 func readSensors() {
 	// Listen on TCP port 2000 on all available unicast and
@@ -576,6 +581,9 @@ func readSensors() {
 				fmt.Println("ERROR", err)
 			}
 			log.Println("reading from sensor:", string(line))
+			lock.Lock()
+			gSensorVal[1] = string(line)
+			lock.Unlock()
 			// 	conn.Write(line)
 			// }
 
@@ -602,6 +610,25 @@ func simpleDial() {
 		// listen for reply
 		message, _ := bufio.NewReader(conn).ReadString('\n')
 		fmt.Print("Message from server: " + message)
+	}
+}
+
+func simpleDial2() {
+
+	for {
+		// connect to this socket
+		conn, _ := net.Dial("tcp", "127.0.0.1:5000")
+		aaa := "A01; Val1: 123; Val2: 234.5; Val3: dada;\n"
+		// read in input from stdin
+		// reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Text to send: ")
+		// text, _ := reader.ReadString('\n')
+		// send to socket
+		fmt.Fprintf(conn, aaa)
+		// listen for reply
+		message, _ := bufio.NewReader(conn).ReadString('\n')
+		fmt.Print("Message from server: " + message)
+		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -804,6 +831,10 @@ func init() {
 	if logL1 {
 		log.Println("authenticated map (init func):", authenticatedMap)
 	}
+
+	lock.Lock()
+	gSensorVal = make(map[int]string)
+	lock.Unlock()
 }
 
 func main() {
@@ -816,7 +847,7 @@ func main() {
 
 	go wsChanSend()
 	go readSensors()
-	go simpleDial()
+	go simpleDial2()
 
 	http.HandleFunc("/home.html/", home)
 	http.HandleFunc("/downloads.html/", download)
