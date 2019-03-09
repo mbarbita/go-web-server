@@ -530,7 +530,7 @@ func wsMessage(w http.ResponseWriter, r *http.Request) {
 			mestype := 1
 			err = c.WriteMessage(mestype, response)
 			if err != nil {
-				log.Println("write:", err)
+				log.Println("ws write err:", err)
 				break
 			}
 			time.Sleep(time.Second)
@@ -565,7 +565,8 @@ func readSensors() {
 		// Wait for a connection.
 		conn, err := l.Accept()
 		if err != nil {
-			log.Fatal(err)
+			log.Println("conn accept err:", err)
+			break
 		}
 		// Handle the connection in a new goroutine.
 		// The loop then returns to accepting, so that
@@ -632,7 +633,12 @@ func simpleDial2(msg string) {
 		// connect to this socket
 		conn, _ := net.Dial("tcp", "127.0.0.1:5000")
 		// send to socket
-		fmt.Fprintf(conn, msg+"\n")
+		// conn.Write(b)
+		n, err := fmt.Fprintf(conn, msg+"\n")
+		if err != nil {
+			log.Println("conn write err:", err)
+		}
+		log.Println("bytes sent to server:", n)
 		// listen for reply
 		message, _ := bufio.NewReader(conn).ReadString('\n')
 		fmt.Print("Message from server: " + message)
