@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"crypto/md5"
 	"crypto/sha256"
 	"fmt"
@@ -9,12 +8,9 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -453,199 +449,6 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/home.html", http.StatusSeeOther)
 }
 
-// func wsEcho(w http.ResponseWriter, r *http.Request) {
-// 	c, err := upgrader.Upgrade(w, r, nil)
-// 	if err != nil {
-// 		log.Print("upgrade:", err)
-// 		return
-// 	}
-// 	defer c.Close()
-//
-// 	for {
-// 		mt, message, err := c.ReadMessage()
-// 		if err != nil {
-// 			log.Println("read:", err)
-// 			break
-// 		}
-// 		log.Printf("recv: %s", message)
-// 		var response []byte
-// 		// extra := []byte{'e', 'x', 't', 'r', 'a', ' '}
-// 		// extra := []byte("extra text ")
-// 		ex := <-wsChan
-// 		extra := []byte(ex)
-// 		// fmt.Println("read chan", ex, extra)
-// 		for _, e := range extra {
-// 			response = append(response, e)
-// 		}
-// 		for _, e := range message {
-// 			response = append(response, e)
-// 		}
-// 		err = c.WriteMessage(mt, response)
-// 		if err != nil {
-// 			log.Println("write:", err)
-// 			break
-// 		}
-// 	}
-// }
-
-func wsMessage(w http.ResponseWriter, r *http.Request) {
-
-	// Get session
-	sok, vok := checkLogin(r, cfgMap["session name"], "user")
-	if !sok || !vok {
-		http.Error(w, http.StatusText(http.StatusInternalServerError),
-			http.StatusInternalServerError)
-		return
-	}
-
-	cc := make(chan bool)
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	defer c.Close()
-
-	go func(c *websocket.Conn) {
-		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				log.Println("read:", err)
-				cc <- true
-				return
-			}
-			log.Printf("recv: %s", message)
-		}
-	}(c)
-
-	for {
-		select {
-		case <-cc:
-			return
-		default:
-			response := []byte(<-wsChan)
-			// response = append(response, ", Sensor: "...)
-			response = append(response, (" Sensor: " + gSensorVal[1] +
-				" | " + gSensorVal[2])...)
-			mestype := 1
-			err = c.WriteMessage(mestype, response)
-			if err != nil {
-				log.Println("ws write err:", err)
-				break
-			}
-			time.Sleep(time.Second)
-		}
-	}
-}
-
-func wsChanSend() {
-	log.Println("wschan running...")
-	i := 1
-	for {
-		// send stuff to clients
-		// TODO: solve multiple clients connecting
-		wsChan <- "test: " + strconv.Itoa(i)
-		i++
-	}
-}
-
-var lock sync.Mutex
-var gSensorVal map[int]string
-
-func readSensors() {
-	// Listen on TCP port 2000 on all available unicast and
-	// anycast IP addresses of the local system.
-	l, err := net.Listen("tcp", ":5000")
-	if err != nil {
-		log.Fatal("listen :5000 err:", err)
-	}
-	defer l.Close()
-	log.Println("listening on :5000 for sensors...")
-	for {
-		// Wait for a connection.
-		conn, err := l.Accept()
-		if err != nil {
-			log.Println("conn accept err:", err)
-			break
-		}
-		// Handle the connection in a new goroutine.
-		// The loop then returns to accepting, so that
-		// multiple connections may be served concurrently.
-		go func(c net.Conn) {
-			// Echo all incoming data.
-			r := bufio.NewReader(c)
-			// for {
-			line, err := r.ReadBytes(byte('\n'))
-			switch err {
-			case nil:
-				break
-			case io.EOF:
-			default:
-				fmt.Println("readbytes err:", err)
-			}
-			lineStr := string(line)
-			fields1 := strings.Split(strings.TrimSpace(lineStr), ";")
-			log.Println("reading from sensor:", lineStr)
-			if fields1[0] == "A01" {
-				lock.Lock()
-				gSensorVal[1] = lineStr
-				lock.Unlock()
-			}
-
-			if fields1[0] == "A02" {
-				lock.Lock()
-				gSensorVal[2] = lineStr
-				lock.Unlock()
-			}
-
-			// 	conn.Write(line)
-			// }
-
-			fmt.Println("local:", c.LocalAddr(), "remote:", c.RemoteAddr())
-			// io.Copy(c, c)
-			c.Write([]byte("its aliveee!\n"))
-			// Shut down the connection.
-			c.Close()
-		}(conn)
-	}
-}
-
-func simpleDial() {
-
-	// connect to this socket
-	conn, _ := net.Dial("tcp", "127.0.0.1:5000")
-	for {
-		// read in input from stdin
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Text to send: ")
-		text, _ := reader.ReadString('\n')
-		// send to socket
-		fmt.Fprintf(conn, text+"\n")
-		// listen for reply
-		message, _ := bufio.NewReader(conn).ReadString('\n')
-		fmt.Print("Message from server: " + message)
-	}
-}
-
-func simpleDial2(msg string) {
-
-	for {
-		// connect to this socket
-		conn, _ := net.Dial("tcp", "127.0.0.1:5000")
-		// send to socket
-		// conn.Write(b)
-		n, err := fmt.Fprintf(conn, msg+"\n")
-		if err != nil {
-			log.Println("conn write err:", err)
-		}
-		log.Println("bytes sent to server:", n)
-		// listen for reply
-		message, _ := bufio.NewReader(conn).ReadString('\n')
-		fmt.Print("Message from server: " + message)
-		time.Sleep(5 * time.Second)
-	}
-}
-
 func status(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Hello, world!\n")
 }
@@ -720,53 +523,6 @@ func dirWatcher(folders ...string) {
 	}
 	//loop forever
 	<-done
-}
-
-func setSessionInt(session *sessions.Session, key string, val int) {
-	// if session.Values[key] == nil {
-	// session.Values[key] = val
-	// return 0
-	// } else {
-	// val, _ := session.Values[key].(int)
-	// val++
-	// session.Values[key] = val
-	// return val
-	// }
-}
-
-func readLines(path string) ([]string, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var lines []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	return lines, scanner.Err()
-}
-
-// writeLines writes the lines to the given file.
-func writeLines(lines []string, path string) error {
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	w := bufio.NewWriter(file)
-	for _, line := range lines {
-		fmt.Fprintln(w, line)
-	}
-	return w.Flush()
-}
-
-func compSum() {
-	sum := sha256.Sum256([]byte("hello world"))
-	fmt.Printf("%x", sum)
 }
 
 var (
