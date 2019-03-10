@@ -27,7 +27,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	type TData struct {
 		// NavAll []string
 		Host   string
-		WSHost string
+		WSConn []string
 		Visits int
 		User   string
 	}
@@ -36,7 +36,8 @@ func home(w http.ResponseWriter, r *http.Request) {
 	tData := new(TData)
 	// tData.NavAll = navAll
 	tData.Host = r.Host
-	tData.WSHost = "ws://" + r.Host + "/msg/"
+	// tData.WSConn = append(tData.WSConn, "ws://"+r.Host+"/msg/")
+	tData.WSConn = append(tData.WSConn, r.Host)
 
 	// Get session
 	// session, err := store.Get(r, "session")

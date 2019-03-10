@@ -10,11 +10,11 @@
     };
     document.getElementById("open").onclick = function(evt) {
       document.getElementById("output").innerHTML = "";
-      var i = 1;
+      var i = 0;
       if (ws) {
         return false;
       }
-      ws = new WebSocket("{{.}}");
+      ws = new WebSocket("ws://{{index . 0}}/msg/");
       ws.onopen = function(evt) {
         print("OPEN");
         // ws.send("OPEN");
@@ -24,12 +24,13 @@
         ws = null;
       }
       ws.onmessage = function(evt) {
-        if (i == 10) {
-          document.getElementById("output").innerHTML = "";
-          i = 1
+        if (i % 10 == 0) {
+          // document.getElementById("output").innerHTML = "";
+          output.innerHTML = "";
+          // i = 0;
         }
         i++
-        print("RESPONSE: " + evt.data);
+        print(i + " RESPONSE: " + evt.data);
       }
       ws.onerror = function(evt) {
         print("ERROR: " + evt.data);
