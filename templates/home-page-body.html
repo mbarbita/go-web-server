@@ -22,7 +22,10 @@
       {{template "websocket-div.html" .}}
     </div>
 
-<div class="col">Test</div>
+<div class="col">
+  {{template "ws-script-arduino.html" .WSConn}}
+  {{template "ws-div-arduino.html" .}}
+</div>
 
     </div>
   </div>

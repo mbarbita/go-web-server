@@ -632,6 +632,7 @@ func main() {
 
 	// http.HandleFunc("/echo", wsEcho)
 	http.HandleFunc("/msg/", wsMessage)
+	http.HandleFunc("/msgard/", wsArduino)
 
 	// http.HandleFunc("/ws", wSocket)
 
