@@ -178,7 +178,7 @@ func simpleDial() {
 	}
 }
 
-func simpleDial2(msg string) {
+func simpleDial2(msg string, er int) {
 	// r := rand.New(rand.NewSource(99))
 	rand.Seed(42)
 	for {
@@ -189,6 +189,12 @@ func simpleDial2(msg string) {
 		// "A1;123;"
 		// mess := msg + ";" + strconv.Itoa(r.Intn(254)) + ";"
 		mess := msg + ";" + strconv.Itoa(rand.Intn(254)) + ";"
+		if er == -1 {
+			mess = msg + ";-1;"
+		}
+		if er == -2 {
+			mess = msg + ";-2;"
+		}
 		n, err := fmt.Fprintf(conn, mess+"\n")
 		if err != nil {
 			log.Println("conn write err:", err)

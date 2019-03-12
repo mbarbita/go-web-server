@@ -8,9 +8,28 @@ var drawArd = function() {
   outputArd.innerHTML = "";
   for (var [key, value] of messageMap) {
   var dArd = document.createElement("div");
-  dArd.style.backgroundColor = 'green';
-  dArd.id= key
-  dArd.innerHTML = value;
+//   if (value==-2) {
+//   dArd.style.backgroundColor = 'gray';
+// } else {
+//   dArd.style.backgroundColor = 'green';
+// }
+
+switch (value) {
+  case "-2":
+  dArd.style.backgroundColor = 'gray';
+  dArd.innerHTML =key+ " TIMEOUT";
+  break;
+case "-1":
+dArd.style.backgroundColor = 'red';
+dArd.innerHTML =key+ " TROUBLE";
+break;
+default:
+dArd.style.backgroundColor = 'green';
+dArd.innerHTML = key+" "+value;
+}
+
+  // dArd.id= key
+  // dArd.innerHTML = value;
   console.log(key,value);
   outputArd.appendChild(dArd);
   };

@@ -619,9 +619,9 @@ func main() {
 	go wsChanSend()
 	go readSensors()
 	// "A1;123;"
-	go simpleDial2("A1")
-	go simpleDial2("A2")
-	go simpleDial2("A3")
+	go simpleDial2("A1", -2)
+	go simpleDial2("A2", -1)
+	go simpleDial2("A3", 0)
 	// go func() {
 	// time.Sleep(2 * time.Second)
 	// }()
