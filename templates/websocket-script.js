@@ -1,4 +1,3 @@
-<script>
   window.addEventListener("load", function(evt) {
     var output = document.getElementById("output");
     var input = document.getElementById("input");
@@ -53,4 +52,3 @@
       return false;
     };
   });
-</script>

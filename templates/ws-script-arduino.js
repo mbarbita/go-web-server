@@ -1,4 +1,3 @@
-<script>
   window.addEventListener("load", function(evtArd) {
     var outputArd = document.getElementById("output-ard");
     // var input = document.getElementById("input");
@@ -55,4 +54,4 @@
       return false;
     };
   });
-</script>
+  

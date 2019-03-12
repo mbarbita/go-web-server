@@ -508,7 +508,7 @@ func dirWatcher(folders ...string) {
 				}
 
 				// Parse templates
-				htmlTmpl = template.Must(template.ParseGlob("templates/*.html"))
+				htmlTmpl = template.Must(template.ParseGlob("templates/*.*"))
 			case err := <-watcher.Errors:
 				log.Println("error:", err)
 			}
@@ -530,7 +530,7 @@ var (
 	cfgMap   = cfgutils.ReadCfgFile("cfg.ini", true)
 	usersMap = cfgutils.ReadCfgFile("users.txt", true)
 
-	htmlTmpl = template.Must(template.ParseGlob("templates/*.html"))
+	htmlTmpl = template.Must(template.ParseGlob("templates/*.*"))
 
 	//navAll = []string{"home", "downloads", "upload", "login"}
 	store *sessions.CookieStore
