@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -52,8 +53,17 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 			return
 		default:
 			var message []byte
-			for _, v := range gSensorVal {
-				message = append(message, v...)
+
+			var sortedKeys []int
+			for k := range gSensorVal {
+				sortedKeys = append(sortedKeys, k)
+			}
+			sort.Ints(sortedKeys)
+
+			for _, v := range sortedKeys {
+
+				message = append(message, (gSensorVal[v] + " " +
+					strconv.Itoa(v) + ";")...)
 				// mesage type = 1
 				// err = c.WriteMessage(1, []byte(v))
 				// if err != nil {
@@ -120,7 +130,7 @@ func readSensors() {
 					bb, _ := strconv.Atoi(fields1[1])
 					lock.Lock()
 					// gSensorVal[i+1] = lineStr
-					gSensorVal[i+1] = fields1[0] + ";" + fields1[1] + ";" +
+					gSensorVal[i+1] = fields1[0] + " " + fields1[1] + " " +
 						fmt.Sprintf("%08b", bb)
 					lock.Unlock()
 				}
