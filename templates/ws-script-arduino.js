@@ -7,7 +7,7 @@
       dArd.innerHTML = message;
       outputArd.appendChild(dArd);
     };
-    printArd("Test");
+    // printArd("Test");
     document.getElementById("open-ard").onclick = function(evtArd) {
       document.getElementById("output-ard").innerHTML = "";
       var i = 0;
@@ -54,4 +54,3 @@
       return false;
     };
   });
-  

@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -51,14 +52,8 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 			return
 		default:
 			for _, v := range gSensorVal {
-
-				// response := []byte(<-wsChan)
-				// response = append(response, (" Sensor: " + gSensorVal[1] +
-				// 	" | " + gSensorVal[2])...)
-
-				response := []byte(v)
 				// mesage type = 1
-				err = c.WriteMessage(1, response)
+				err = c.WriteMessage(1, []byte(v))
 				if err != nil {
 					log.Println("ws write err:", err)
 					break
@@ -73,6 +68,10 @@ var lock sync.Mutex
 var gSensorVal map[int]string
 
 func readSensors() {
+	smax, err := strconv.Atoi(cfgMap["maxsensors"])
+	if err != nil {
+		log.Println(err)
+	}
 	// Listen on TCP port 2000 on all available unicast and
 	// anycast IP addresses of the local system.
 	l, err := net.Listen("tcp", ":5000")
@@ -106,17 +105,28 @@ func readSensors() {
 			lineStr := string(line)
 			fields1 := strings.Split(strings.TrimSpace(lineStr), ";")
 			log.Println("reading from sensor:", lineStr)
-			if fields1[0] == "A01" {
-				lock.Lock()
-				gSensorVal[1] = lineStr
-				lock.Unlock()
+
+			for i := 0; i < smax; i++ {
+				if fields1[0] == "A"+strconv.Itoa(i+1) {
+					lock.Lock()
+					// gSensorVal[i+1] = lineStr
+					gSensorVal[i+1] = fields1[0] + ";" + fields1[1] + ";" +
+						fmt.Sprintf("%08b", 123)
+					lock.Unlock()
+				}
 			}
 
-			if fields1[0] == "A02" {
-				lock.Lock()
-				gSensorVal[2] = lineStr
-				lock.Unlock()
-			}
+			// if fields1[0] == "A01" {
+			// 	lock.Lock()
+			// 	gSensorVal[1] = lineStr
+			// 	lock.Unlock()
+			// }
+
+			// if fields1[0] == "A02" {
+			// 	lock.Lock()
+			// 	gSensorVal[2] = lineStr
+			// 	lock.Unlock()
+			// }
 
 			// 	conn.Write(line)
 			// }
