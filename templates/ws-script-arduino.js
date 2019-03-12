@@ -4,25 +4,29 @@
     var messageMap = new Map();
     var wsArd;
 
+var drawArd = function(message) {
+  // var dArd = document.createElement("div");
+  // dArd.innerHTML = i + " RESPONSE: " + message;
+  // dArd.style.backgroundColor = 'green';
+  var fields = message.split(";");
+
+  // var fields2;
+  for (let value of fields) {
+    // console.log(value);
+    var fields2 = value.split(" ");
+    // console.log(fields2);
+    messageMap.set(fields2[0],fields2[1]);
+    // console.log(messageMap);
+  };
+  messageMap.delete("");
+
+  // var fields2 = fields[0].split(" ");
+  // messageMap.set(fields2[0],fields2[1]);
+  // dArd.innerHTML = fields[0]+fields[1]+fields[2];
+
+};
+
     var printArd = function(message,i) {
-      // var dArd = document.createElement("div");
-      // dArd.innerHTML = i + " RESPONSE: " + message;
-      // dArd.style.backgroundColor = 'green';
-      var fields = message.split(";");
-
-      // var fields2;
-      for (let value of fields) {
-        // console.log(value);
-        var fields2 = value.split(" ");
-        // console.log(fields2);
-        messageMap.set(fields2[0],fields2[1]);
-        // console.log(messageMap);
-      };
-      messageMap.delete("");
-
-      // var fields2 = fields[0].split(" ");
-      // messageMap.set(fields2[0],fields2[1]);
-      // dArd.innerHTML = fields[0]+fields[1]+fields[2];
 
 for (var value of messageMap.values()) {
   var dArd = document.createElement("div");
@@ -61,6 +65,7 @@ for (var value of messageMap.values()) {
           // i = 0;
         }
         i++
+        drawArd(evtArd.data);
         printArd(evtArd.data,i);
       }
       wsArd.onerror = function(evtArd) {
