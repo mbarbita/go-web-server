@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -178,13 +179,17 @@ func simpleDial() {
 }
 
 func simpleDial2(msg string) {
-
+	// r := rand.New(rand.NewSource(99))
+	rand.Seed(42)
 	for {
 		// connect to this socket
 		conn, _ := net.Dial("tcp", "127.0.0.1:5000")
 		// send to socket
 		// conn.Write(b)
-		n, err := fmt.Fprintf(conn, msg+"\n")
+		// "A1;123;"
+		// mess := msg + ";" + strconv.Itoa(r.Intn(254)) + ";"
+		mess := msg + ";" + strconv.Itoa(rand.Intn(254)) + ";"
+		n, err := fmt.Fprintf(conn, mess+"\n")
 		if err != nil {
 			log.Println("conn write err:", err)
 		}
