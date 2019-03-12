@@ -2,11 +2,13 @@
     var outputArd = document.getElementById("output-ard");
     // var input = document.getElementById("input");
     var wsArd;
-    var printArd = function(message) {
+
+    var printArd = function(message,i) {
       var dArd = document.createElement("div");
-      dArd.innerHTML = message;
+      dArd.innerHTML = i + " RESPONSE: " + message;
       outputArd.appendChild(dArd);
     };
+
     // printArd("Test");
     document.getElementById("open-ard").onclick = function(evtArd) {
       document.getElementById("output-ard").innerHTML = "";
@@ -31,7 +33,7 @@
           // i = 0;
         }
         i++
-        printArd(i + " RESPONSE: " + evtArd.data);
+        printArd(evtArd.data,i);
       }
       wsArd.onerror = function(evtArd) {
         printArd("ERROR: " + evtArd.data);

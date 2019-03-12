@@ -51,13 +51,22 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 		case <-cc:
 			return
 		default:
+			var message []byte
 			for _, v := range gSensorVal {
+				message = append(message, v...)
 				// mesage type = 1
-				err = c.WriteMessage(1, []byte(v))
-				if err != nil {
-					log.Println("ws write err:", err)
-					break
-				}
+				// err = c.WriteMessage(1, []byte(v))
+				// if err != nil {
+				// 	log.Println("ws write err:", err)
+				// 	break
+				// }
+			}
+
+			// mesage type = 1
+			err = c.WriteMessage(1, message)
+			if err != nil {
+				log.Println("ws write err:", err)
+				break
 			}
 			time.Sleep(time.Second)
 		}
@@ -108,8 +117,8 @@ func readSensors() {
 
 			for i := 0; i < smax; i++ {
 				if fields1[0] == "A"+strconv.Itoa(i+1) {
-					lock.Lock()
 					bb, _ := strconv.Atoi(fields1[1])
+					lock.Lock()
 					// gSensorVal[i+1] = lineStr
 					gSensorVal[i+1] = fields1[0] + ";" + fields1[1] + ";" +
 						fmt.Sprintf("%08b", bb)
