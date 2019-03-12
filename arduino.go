@@ -65,12 +65,6 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 
 				message = append(message, (gSensorVal[v] + " " +
 					strconv.Itoa(v) + ";")...)
-				// mesage type = 1
-				// err = c.WriteMessage(1, []byte(v))
-				// if err != nil {
-				// 	log.Println("ws write err:", err)
-				// 	break
-				// }
 			}
 
 			// mesage type = 1
@@ -137,21 +131,6 @@ func readSensors() {
 				}
 			}
 
-			// if fields1[0] == "A01" {
-			// 	lock.Lock()
-			// 	gSensorVal[1] = lineStr
-			// 	lock.Unlock()
-			// }
-
-			// if fields1[0] == "A02" {
-			// 	lock.Lock()
-			// 	gSensorVal[2] = lineStr
-			// 	lock.Unlock()
-			// }
-
-			// 	conn.Write(line)
-			// }
-
 			fmt.Println("local:", c.LocalAddr(), "remote:", c.RemoteAddr())
 			// io.Copy(c, c)
 			c.Write([]byte("its aliveee!\n"))
@@ -184,10 +163,6 @@ func simpleDial2(msg string, er int) {
 	for {
 		// connect to this socket
 		conn, _ := net.Dial("tcp", "127.0.0.1:5000")
-		// send to socket
-		// conn.Write(b)
-		// "A1;123;"
-		// mess := msg + ";" + strconv.Itoa(r.Intn(254)) + ";"
 		mess := msg + ";" + strconv.Itoa(rand.Intn(254)) + ";"
 		if er == -1 {
 			mess = msg + ";-1;"
