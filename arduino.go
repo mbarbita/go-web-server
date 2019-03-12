@@ -109,9 +109,10 @@ func readSensors() {
 			for i := 0; i < smax; i++ {
 				if fields1[0] == "A"+strconv.Itoa(i+1) {
 					lock.Lock()
+					bb, _ := strconv.Atoi(fields1[1])
 					// gSensorVal[i+1] = lineStr
 					gSensorVal[i+1] = fields1[0] + ";" + fields1[1] + ";" +
-						fmt.Sprintf("%08b", 123)
+						fmt.Sprintf("%08b", bb)
 					lock.Unlock()
 				}
 			}
