@@ -17,7 +17,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// global map for sensors data and global lock
+// Arduino global map for sensors data and global lock
 type Arduino struct {
 	ID            string
 	message       string
@@ -82,9 +82,16 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 			// response = append(response, (" Sensor: " + gSensorVal[1] +
 			// 	" | " + gSensorVal[2])...)
 			for _, v := range sortedKeys {
-				wsMessage = append(wsMessage, (gSensor[v].messageFields[0] +
-					" " + gSensor[v].messageFields[1] + " " +
-					gSensor[v].messageFields[2] + ";")...)
+				if gSensor[v].seen {
+					wsMessage = append(wsMessage, (gSensor[v].ID +
+						" " + gSensor[v].messageFields[1] + " " +
+						gSensor[v].messageFields[2] + ";")...)
+				} else {
+					wsMessage = append(wsMessage, (gSensor[v].ID +
+						" -2 " +
+						fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006-15:04:05")) +
+						";")...)
+				}
 			}
 
 			// send message to browser
@@ -114,7 +121,8 @@ func readSensors() {
 			message:       "",
 			messageFields: make([]string, 3),
 			lastSeen:      time.Time{},
-			seen:          false,
+			// lastSeen: time.Now(),
+			seen: false,
 		}
 		lock.Unlock()
 	}

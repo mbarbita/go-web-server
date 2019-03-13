@@ -5,12 +5,15 @@ window.addEventListener("load", function(evtArd) {
 
     var drawArd = function() {
         outputArd.innerHTML = "";
+
         for (var [key, value] of messageMap) {
+          var fields = value.split(" ");
+          console.log(fields)
             var dArd = document.createElement("div");
-            switch (value) {
+            switch (fields[0]) {
                 case "-2":
                     dArd.style.backgroundColor = 'gray';
-                    dArd.innerHTML = key + " TIMEOUT";
+                    dArd.innerHTML = key + " TIMEOUT, last seen: "+ fields[1];
                     break;
                 case "-1":
                     dArd.style.backgroundColor = 'red';
@@ -52,7 +55,7 @@ window.addEventListener("load", function(evtArd) {
             var fields = evtArd.data.split(";");
             for (let value of fields) {
                 var fields2 = value.split(" ");
-                messageMap.set(fields2[0], fields2[1]);
+                messageMap.set(fields2[0], fields2[1]+" "+ fields2[2]);
             };
             messageMap.delete("");
 
