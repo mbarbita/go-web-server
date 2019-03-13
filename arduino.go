@@ -18,6 +18,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// global map for sensors data and global lock
+// type Arduino struct {
+// 	ID            string
+// 	message       string
+// 	messageFields []string
+// 	lastSeen      time.Time
+// }
+
+var lock sync.Mutex
+var gSensorVal map[int]string
+
+// wsArduino handles browser requests to /msgard/
 func wsArduino(w http.ResponseWriter, r *http.Request) {
 
 	// Get session
@@ -29,6 +41,8 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 	// }
 
 	cc := make(chan bool)
+
+	// upgrade to websocket
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("upgrade:", err)
@@ -36,6 +50,7 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 
+	// handle websocket incoming browser messages
 	go func(c *websocket.Conn) {
 		for {
 			_, message, err := c.ReadMessage()
@@ -48,25 +63,30 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 		}
 	}(c)
 
+	// send websocket message to browser
 	for {
 		select {
 		case <-cc:
 			return
 		default:
 			var message []byte
-
 			var sortedKeys []int
+
+			// sort map keys and store into oarray
 			for k := range gSensorVal {
 				sortedKeys = append(sortedKeys, k)
 			}
 			sort.Ints(sortedKeys)
 
+			// build message to browser
+			// response = append(response, (" Sensor: " + gSensorVal[1] +
+			// 	" | " + gSensorVal[2])...)
 			for _, v := range sortedKeys {
-
 				message = append(message, (gSensorVal[v] + " " +
 					strconv.Itoa(v) + ";")...)
 			}
 
+			// send message to browser
 			// mesage type = 1
 			err = c.WriteMessage(1, message)
 			if err != nil {
@@ -78,22 +98,22 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var lock sync.Mutex
-var gSensorVal map[int]string
-
+// readSensors listen for arduinos and store received data into global data map
 func readSensors() {
 	smax, err := strconv.Atoi(cfgMap["maxsensors"])
 	if err != nil {
 		log.Println(err)
 	}
-	// Listen on TCP port 2000 on all available unicast and
-	// anycast IP addresses of the local system.
+
+	// Listen on TCP port 5000 for arduinos
 	l, err := net.Listen("tcp", ":5000")
 	if err != nil {
 		log.Fatal("listen :5000 err:", err)
 	}
 	defer l.Close()
 	log.Println("listening on :5000 for sensors...")
+
+	// handles connections from arduinos
 	for {
 		// Wait for a connection.
 		conn, err := l.Accept()
@@ -101,13 +121,14 @@ func readSensors() {
 			log.Println("conn accept err:", err)
 			break
 		}
+
 		// Handle the connection in a new goroutine.
 		// The loop then returns to accepting, so that
 		// multiple connections may be served concurrently.
 		go func(c net.Conn) {
-			// Echo all incoming data.
+
+			// read \n terminated line from connection
 			r := bufio.NewReader(c)
-			// for {
 			line, err := r.ReadBytes(byte('\n'))
 			switch err {
 			case nil:
@@ -116,60 +137,80 @@ func readSensors() {
 			default:
 				fmt.Println("readbytes err:", err)
 			}
+
+			// convert to string and split on ; separator into an string slice
 			lineStr := string(line)
 			fields1 := strings.Split(strings.TrimSpace(lineStr), ";")
 			log.Println("reading from sensor:", lineStr)
 
+			// loop for configured max sensors
+			// check for a recognisable field in the message
+			// use map key from 1 up not 0 up
 			for i := 0; i < smax; i++ {
 				if fields1[0] == "A"+strconv.Itoa(i+1) {
-					bb, _ := strconv.Atoi(fields1[1])
+					intField, _ := strconv.Atoi(fields1[1])
+
+					// build the final map entry, lock and update the map
 					lock.Lock()
 					// gSensorVal[i+1] = lineStr
 					gSensorVal[i+1] = fields1[0] + " " + fields1[1] + " " +
-						fmt.Sprintf("%08b", bb)
+						fmt.Sprintf("%08b", intField)
 					lock.Unlock()
 				}
 			}
 
-			fmt.Println("local:", c.LocalAddr(), "remote:", c.RemoteAddr())
-			// io.Copy(c, c)
+			// log incomming adruinos connections
+			log.Println("local:", c.LocalAddr(), "remote:", c.RemoteAddr())
+
+			// write some reply to arduinos
 			c.Write([]byte("its aliveee!\n"))
+
 			// Shut down the connection.
 			c.Close()
 		}(conn)
 	}
 }
 
+// simpleDial simulate arduino
 func simpleDial() {
 
 	// connect to this socket
 	conn, _ := net.Dial("tcp", "127.0.0.1:5000")
+	defer conn.Close()
 	for {
 		// read in input from stdin
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print("Text to send: ")
 		text, _ := reader.ReadString('\n')
+
 		// send to socket
 		fmt.Fprintf(conn, text+"\n")
+
 		// listen for reply
 		message, _ := bufio.NewReader(conn).ReadString('\n')
 		fmt.Print("Message from server: " + message)
 	}
 }
 
-func simpleDial2(msg string, er int) {
-	// r := rand.New(rand.NewSource(99))
+// simpleDial2 simulate arduino
+func simpleDial2(msg string, err int) {
 	rand.Seed(42)
 	for {
 		// connect to this socket
 		conn, _ := net.Dial("tcp", "127.0.0.1:5000")
+
+		// add some random data
 		mess := msg + ";" + strconv.Itoa(rand.Intn(254)) + ";"
-		if er == -1 {
+
+		// add status errors
+		if err == -1 {
 			mess = msg + ";-1;"
 		}
-		if er == -2 {
+		if err == -2 {
 			mess = msg + ";-2;"
 		}
+
+		// send message to server
 		n, err := fmt.Fprintf(conn, mess+"\n")
 		if err != nil {
 			log.Println("conn write err:", err)
@@ -178,6 +219,8 @@ func simpleDial2(msg string, er int) {
 		// listen for reply
 		message, _ := bufio.NewReader(conn).ReadString('\n')
 		fmt.Print("Message from server: " + message)
+
+		// sleep between sends
 		time.Sleep(5 * time.Second)
 	}
 }

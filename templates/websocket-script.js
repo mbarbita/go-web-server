@@ -1,54 +1,54 @@
-  window.addEventListener("load", function(evt) {
+window.addEventListener("load", function(evt) {
     var output = document.getElementById("output");
     var input = document.getElementById("input");
     var ws;
     var print = function(message) {
-      var d = document.createElement("div");
-      d.innerHTML = message;
-      output.appendChild(d);
+        var d = document.createElement("div");
+        d.innerHTML = message;
+        output.appendChild(d);
     };
     document.getElementById("open").onclick = function(evt) {
-      document.getElementById("output").innerHTML = "";
-      var i = 0;
-      if (ws) {
-        return false;
-      }
-      ws = new WebSocket("ws://{{index . 0}}/msg/");
-      ws.onopen = function(evt) {
-        print("OPEN");
-        // ws.send("OPEN");
-      }
-      ws.onclose = function(evt) {
-        print("CLOSE");
-        ws = null;
-      }
-      ws.onmessage = function(evt) {
-        if (i % 10 == 0) {
-          // document.getElementById("output").innerHTML = "";
-          output.innerHTML = "";
-          // i = 0;
+        document.getElementById("output").innerHTML = "";
+        var i = 0;
+        if (ws) {
+            return false;
         }
-        i++
-        print(i + " RESPONSE: " + evt.data);
-      }
-      ws.onerror = function(evt) {
-        print("ERROR: " + evt.data);
-      }
-      return false;
+        ws = new WebSocket("ws://{{index . 0}}/msg/");
+        ws.onopen = function(evt) {
+            print("OPEN");
+            // ws.send("OPEN");
+        }
+        ws.onclose = function(evt) {
+            print("CLOSE");
+            ws = null;
+        }
+        ws.onmessage = function(evt) {
+            if (i % 10 == 0) {
+                // document.getElementById("output").innerHTML = "";
+                output.innerHTML = "";
+                // i = 0;
+            }
+            i++
+            print(i + " RESPONSE: " + evt.data);
+        }
+        ws.onerror = function(evt) {
+            print("ERROR: " + evt.data);
+        }
+        return false;
     };
     document.getElementById("send").onclick = function(evt) {
-      if (!ws) {
+        if (!ws) {
+            return false;
+        }
+        print("SEND: " + input.value);
+        ws.send(input.value);
         return false;
-      }
-      print("SEND: " + input.value);
-      ws.send(input.value);
-      return false;
     };
     document.getElementById("close").onclick = function(evt) {
-      if (!ws) {
+        if (!ws) {
+            return false;
+        }
+        ws.close();
         return false;
-      }
-      ws.close();
-      return false;
     };
-  });
+});

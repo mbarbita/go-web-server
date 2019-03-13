@@ -9,9 +9,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// wsMessage handles browser requests to /msg/
 func wsMessage(w http.ResponseWriter, r *http.Request) {
 
-	// Get session
+	// Get session, continue only if authenticated
 	sok, vok := checkLogin(r, cfgMap["session name"], "user")
 	if !sok || !vok {
 		http.Error(w, http.StatusText(http.StatusInternalServerError),
@@ -20,6 +21,8 @@ func wsMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cc := make(chan bool)
+
+	// upgrade to websocket
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("upgrade:", err)
@@ -27,6 +30,7 @@ func wsMessage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 
+	// handle websocket incoming browser messages
 	go func(c *websocket.Conn) {
 		for {
 			_, message, err := c.ReadMessage()
@@ -39,14 +43,13 @@ func wsMessage(w http.ResponseWriter, r *http.Request) {
 		}
 	}(c)
 
+	// send websocket message to browser
 	for {
 		select {
 		case <-cc:
 			return
 		default:
 			response := []byte(<-wsChan)
-			// response = append(response, (" Sensor: " + gSensorVal[1] +
-			// 	" | " + gSensorVal[2])...)
 			// mesage type = 1
 			err = c.WriteMessage(1, response)
 			if err != nil {
@@ -58,6 +61,8 @@ func wsMessage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// wsChanSend build and send messages to connected browsers, the channel
+// is shared between connections
 func wsChanSend() {
 	log.Println("wschan running...")
 	i := 1
