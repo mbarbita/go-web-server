@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -28,7 +27,6 @@ type Arduino struct {
 }
 
 var lock sync.Mutex
-var gSensorVal map[int]string
 var gSensor map[int]*Arduino
 
 // wsArduino handles browser requests to /msgard/
@@ -71,11 +69,11 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 		case <-cc:
 			return
 		default:
-			var message []byte
+			var wsMessage []byte
 			var sortedKeys []int
 
 			// sort map keys and store into oarray
-			for k := range gSensorVal {
+			for k := range gSensor {
 				sortedKeys = append(sortedKeys, k)
 			}
 			sort.Ints(sortedKeys)
@@ -84,13 +82,14 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 			// response = append(response, (" Sensor: " + gSensorVal[1] +
 			// 	" | " + gSensorVal[2])...)
 			for _, v := range sortedKeys {
-				message = append(message, (gSensorVal[v] + " " +
-					strconv.Itoa(v) + ";")...)
+				wsMessage = append(wsMessage, (gSensor[v].messageFields[0] +
+					" " + gSensor[v].messageFields[1] + " " +
+					gSensor[v].messageFields[2] + ";")...)
 			}
 
 			// send message to browser
 			// mesage type = 1
-			err = c.WriteMessage(1, message)
+			err = c.WriteMessage(1, wsMessage)
 			if err != nil {
 				log.Println("ws write err:", err)
 				break
@@ -102,7 +101,7 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 
 // readSensors listen for arduinos and store received data into global data map
 func readSensors() {
-	smax, err := strconv.Atoi(cfgMap["maxsensors"])
+	smax, err := strconv.Atoi(cfgMap["max sensors"])
 	if err != nil {
 		log.Println(err)
 	}
@@ -113,15 +112,15 @@ func readSensors() {
 		gSensor[i] = &Arduino{
 			ID:            "A" + strconv.Itoa(i),
 			message:       "",
-			messageFields: nil,
+			messageFields: make([]string, 3),
 			lastSeen:      time.Time{},
 			seen:          false,
 		}
 		lock.Unlock()
 	}
-	for k, v := range gSensor {
-		fmt.Printf("gSensor: k: %+v v: %+v\n", k, v)
-	}
+	// for k, v := range gSensor {
+	// 	fmt.Printf("gSensor: k: %+v v: %+v\n", k, v)
+	// }
 
 	// Listen on TCP port 5000 for arduinos
 	l, err := net.Listen("tcp", ":5000")
@@ -144,6 +143,12 @@ func readSensors() {
 		// The loop then returns to accepting, so that
 		// multiple connections may be served concurrently.
 		go func(c net.Conn) {
+
+			// Shut down the connection.
+			defer c.Close()
+
+			// log incomming adruinos connections
+			log.Println("arduino new connection:", "remote:", c.RemoteAddr())
 
 			// read \n terminated line from connection
 			r := bufio.NewReader(c)
@@ -170,11 +175,10 @@ func readSensors() {
 
 					// build the final map entry, lock and update the map
 					lock.Lock()
-					// gSensorVal[i+1] = lineStr
-					gSensorVal[i] = fields1[0] + " " + fields1[1] + " " +
-						fmt.Sprintf("%08b", intField)
 					gSensor[i].message = lineStr
-					gSensor[i].messageFields = fields1
+					gSensor[i].messageFields[0] = fields1[0]
+					gSensor[i].messageFields[1] = fields1[1]
+					gSensor[i].messageFields[2] = fmt.Sprintf("%08b", intField)
 					gSensor[i].lastSeen = time.Now()
 					gSensor[i].seen = true
 					lock.Unlock()
@@ -184,14 +188,8 @@ func readSensors() {
 				fmt.Printf("gSensor populated: k: %+v v: %+v\n", k, v)
 			}
 
-			// log incomming adruinos connections
-			log.Println("local:", c.LocalAddr(), "remote:", c.RemoteAddr())
-
 			// write some reply to arduinos
 			c.Write([]byte("its aliveee!\n"))
-
-			// Shut down the connection.
-			c.Close()
 		}(conn)
 	}
 }
@@ -200,21 +198,21 @@ func readSensors() {
 func simpleDial() {
 
 	// connect to this socket
-	conn, _ := net.Dial("tcp", "127.0.0.1:5000")
-	defer conn.Close()
-	for {
-		// read in input from stdin
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Text to send: ")
-		text, _ := reader.ReadString('\n')
-
-		// send to socket
-		fmt.Fprintf(conn, text+"\n")
-
-		// listen for reply
-		message, _ := bufio.NewReader(conn).ReadString('\n')
-		fmt.Print("Message from server: " + message)
-	}
+	// conn, _ := net.Dial("tcp", "127.0.0.1:5000")
+	// defer conn.Close()
+	// for {
+	// 	// read in input from stdin
+	// 	reader := bufio.NewReader(os.Stdin)
+	// 	fmt.Print("Text to send: ")
+	// 	text, _ := reader.ReadString('\n')
+	//
+	// 	// send to socket
+	// 	fmt.Fprintf(conn, text+"\n")
+	//
+	// 	// listen for reply
+	// 	message, _ := bufio.NewReader(conn).ReadString('\n')
+	// 	fmt.Print("message from server: " + message)
+	// }
 }
 
 // simpleDial2 simulate arduino
@@ -240,10 +238,10 @@ func simpleDial2(msg string, err int) {
 		if err != nil {
 			log.Println("conn write err:", err)
 		}
-		log.Println("bytes sent to server:", n)
+		log.Println("bytes sent to server:", n, "port:", conn.LocalAddr())
 		// listen for reply
 		message, _ := bufio.NewReader(conn).ReadString('\n')
-		fmt.Print("Message from server: " + message)
+		log.Print("Message from server: " + message)
 
 		// sleep between sends
 		time.Sleep(5 * time.Second)

@@ -20,7 +20,7 @@ window.addEventListener("load", function(evtArd) {
                     dArd.style.backgroundColor = 'green';
                     dArd.innerHTML = key + " " + value;
             }
-            console.log(key, value);
+            // console.log(key, value);
             outputArd.appendChild(dArd);
         };
     };
@@ -42,7 +42,8 @@ window.addEventListener("load", function(evtArd) {
         }
 
         wsArd.onmessage = function(evtArd) {
-            console.log("MESSAGE");
+            console.log("MESSAGE:");
+            console.log(evtArd.data);
 
             if (i % 3 == 0) {
                 outputArd.innerHTML = "";
@@ -64,7 +65,7 @@ window.addEventListener("load", function(evtArd) {
         }
         return false;
     };
-    
+
     document.getElementById("close-ard").onclick = function(evtArd) {
         if (!wsArd) {
             return false;

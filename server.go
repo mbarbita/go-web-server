@@ -605,7 +605,6 @@ func init() {
 	}
 
 	lock.Lock()
-	gSensorVal = make(map[int]string)
 	gSensor = make(map[int]*Arduino)
 	lock.Unlock()
 }
