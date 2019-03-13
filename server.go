@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
 	"time"
 
@@ -605,10 +606,15 @@ func init() {
 
 	lock.Lock()
 	gSensorVal = make(map[int]string)
+	gSensor = make(map[int]*Arduino)
 	lock.Unlock()
 }
 
 func main() {
+
+	cmd := exec.Command("cmd", "/c", "cls")
+	cmd.Stdout = os.Stdout
+	cmd.Run()
 
 	// logger.Print(fmt.Sprint("lg test ", loginsMap))
 	// fmt.Print(&loggerBuf)

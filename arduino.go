@@ -19,15 +19,17 @@ import (
 )
 
 // global map for sensors data and global lock
-// type Arduino struct {
-// 	ID            string
-// 	message       string
-// 	messageFields []string
-// 	lastSeen      time.Time
-// }
+type Arduino struct {
+	ID            string
+	message       string
+	messageFields []string
+	lastSeen      time.Time
+	seen          bool
+}
 
 var lock sync.Mutex
 var gSensorVal map[int]string
+var gSensor map[int]*Arduino
 
 // wsArduino handles browser requests to /msgard/
 func wsArduino(w http.ResponseWriter, r *http.Request) {
@@ -105,6 +107,22 @@ func readSensors() {
 		log.Println(err)
 	}
 
+	// populate global map gsensor map[int]Arduino
+	for i := 1; i <= smax; i++ {
+		lock.Lock()
+		gSensor[i] = &Arduino{
+			ID:            "A" + strconv.Itoa(i),
+			message:       "",
+			messageFields: nil,
+			lastSeen:      time.Time{},
+			seen:          false,
+		}
+		lock.Unlock()
+	}
+	for k, v := range gSensor {
+		fmt.Printf("gSensor: k: %+v v: %+v\n", k, v)
+	}
+
 	// Listen on TCP port 5000 for arduinos
 	l, err := net.Listen("tcp", ":5000")
 	if err != nil {
@@ -146,17 +164,24 @@ func readSensors() {
 			// loop for configured max sensors
 			// check for a recognisable field in the message
 			// use map key from 1 up not 0 up
-			for i := 0; i < smax; i++ {
-				if fields1[0] == "A"+strconv.Itoa(i+1) {
+			for i := 1; i <= smax; i++ {
+				if fields1[0] == "A"+strconv.Itoa(i) {
 					intField, _ := strconv.Atoi(fields1[1])
 
 					// build the final map entry, lock and update the map
 					lock.Lock()
 					// gSensorVal[i+1] = lineStr
-					gSensorVal[i+1] = fields1[0] + " " + fields1[1] + " " +
+					gSensorVal[i] = fields1[0] + " " + fields1[1] + " " +
 						fmt.Sprintf("%08b", intField)
+					gSensor[i].message = lineStr
+					gSensor[i].messageFields = fields1
+					gSensor[i].lastSeen = time.Now()
+					gSensor[i].seen = true
 					lock.Unlock()
 				}
+			}
+			for k, v := range gSensor {
+				fmt.Printf("gSensor populated: k: %+v v: %+v\n", k, v)
 			}
 
 			// log incomming adruinos connections
