@@ -7,21 +7,21 @@ window.addEventListener("load", function(evtArd) {
         outputArd.innerHTML = "";
 
         for (var [key, value] of messageMap) {
-          var fields = value.split(" ");
+          var fields = value.split(",");
           console.log(fields)
             var dArd = document.createElement("div");
-            switch (fields[0]) {
+            switch (fields[1]) {
                 case "-2":
                     dArd.style.backgroundColor = 'gray';
-                    dArd.innerHTML = key + " TIMEOUT, last seen: "+ fields[2];
+                    dArd.innerHTML = key + " " + fields[0] + " TIMEOUT, last seen: " + fields[3];
                     break;
                 case "-1":
                     dArd.style.backgroundColor = 'red';
-                    dArd.innerHTML = key + " TROUBLE "+ fields[0]+" "+ fields[1];
+                    dArd.innerHTML = key + " " + fields[0] + " TROUBLE "+ fields[1]+ " " + fields[2];
                     break;
                 default:
                     dArd.style.backgroundColor = 'green';
-                    dArd.innerHTML = key + " " + fields[1];
+                    dArd.innerHTML = key + " " + fields[0] + " " + fields[2];
             }
             // console.log(key, value);
             outputArd.appendChild(dArd);
@@ -52,11 +52,13 @@ window.addEventListener("load", function(evtArd) {
             //     outputArd.innerHTML = "";
             // }
 
-            var fields = evtArd.data.split(";");
+            var fields = evtArd.data.split("|");
             for (let value of fields) {
-                var fields2 = value.split(" ");
+                var fields2 = value.split(";");
                 messageMap.set(fields2[0],
-                  fields2[1] + " " + fields2[2] + " " + fields2[3]);
+                  fields2[1] + "," + fields2[2] + "," +
+                  fields2[3]+ "," + fields2[4]);
+                  // fields2;
             };
             messageMap.delete("");
 

@@ -17,15 +17,21 @@ import (
 
 // Arduino global map for sensors data and global lock
 type Arduino struct {
-	ID            string
-	message       string
-	messageFields []string
-	lastSeen      time.Time
-	seen          bool
+	id      string
+	name    string
+	message string
+	// messageFields []string
+	status   string
+	value    string
+	binval   string
+	lastSeen time.Time
+	seen     bool
 }
 
 var lock sync.Mutex
 var gSensor map[int]*Arduino
+var sepAtoS = ";"
+var sepStoB = "|"
 
 // wsArduino handles browser requests to /msgard/
 func wsArduino(w http.ResponseWriter, r *http.Request) {
@@ -61,27 +67,35 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 		// response = append(response, (" Sensor: " + gSensorVal[1] +
 		// 	" | " + gSensorVal[2])...)
 		for _, v := range sortedKeys {
+			ls := fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006 15:04:05"))
 			if gSensor[v].seen {
-				wsMessage = append(wsMessage, (gSensor[v].ID +
-					" " +
-					gSensor[v].messageFields[1] +
-					" " +
-					gSensor[v].messageFields[2] +
-					" " +
-					gSensor[v].messageFields[3] +
-					";")...)
+				wsMessage = append(wsMessage,
+					(gSensor[v].id +
+						";" +
+						gSensor[v].name +
+						";" +
+						gSensor[v].status +
+						";" +
+						gSensor[v].value +
+						";" +
+						ls +
+						"|")...)
 
 				// calculate timeout
 				diff := time.Now().Sub(gSensor[v].lastSeen)
 				if diff > time.Duration(time.Second*20) {
-					wsMessage = []byte(gSensor[v].ID +
-						" -2 0 " +
-						fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006-15:04:05")) +
-						";")
+					wsMessage = []byte(gSensor[v].id +
+						";" +
+						gSensor[v].name +
+						";-2;0;" +
+						ls +
+						"|")
 				}
 			} else {
-				wsMessage = append(wsMessage, (gSensor[v].ID +
-					" -2 0 never;")...)
+				wsMessage = append(wsMessage, (gSensor[v].id +
+					";" +
+					"no name" +
+					";-2;0;never|")...)
 				// wsMessage = append(wsMessage, (gSensor[v].ID +
 				// 	" -2 " +
 				// 	fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006-15:04:05")) +
@@ -111,10 +125,14 @@ func readSensors() {
 	for i := 1; i <= smax; i++ {
 		lock.Lock()
 		gSensor[i] = &Arduino{
-			ID:            "A" + strconv.Itoa(i),
-			message:       "",
-			messageFields: make([]string, 4),
-			lastSeen:      time.Time{},
+			id:      "A" + strconv.Itoa(i),
+			name:    "",
+			message: "",
+			// messageFields: make([]string, 4),
+			status:   "-2",
+			value:    "0",
+			binval:   "0",
+			lastSeen: time.Time{},
 			// lastSeen: time.Now(),
 			seen: false,
 		}
@@ -125,6 +143,7 @@ func readSensors() {
 	// }
 
 	// Listen on TCP port 5000 for arduinos
+	// TODO: read port from cfg.ini
 	l, err := net.Listen("tcp", ":5000")
 	if err != nil {
 		log.Fatal("listen :5000 err:", err)
@@ -165,23 +184,24 @@ func readSensors() {
 
 			// convert to string and split on ; separator into an string slice
 			lineStr := string(line)
-			fields1 := strings.Split(strings.TrimSpace(lineStr), ";")
+			fields := strings.Split(strings.TrimSpace(lineStr), ";")
 			log.Println("reading from sensor:", lineStr)
 
 			// loop for configured max sensors
 			// check for a recognisable field in the message
-			// use map key from 1 up not 0 up
+			// use map key from 1 up
 			for i := 1; i <= smax; i++ {
-				if fields1[0] == "A"+strconv.Itoa(i) {
-					intField, _ := strconv.Atoi(fields1[2])
+				// TODO: read signature from cfg.ini
+				if fields[0] == "A"+strconv.Itoa(i) {
+					// intField, _ := strconv.Atoi(fields1[2])
 
 					// build the final map entry, lock and update the map
 					lock.Lock()
 					gSensor[i].message = lineStr
-					gSensor[i].messageFields[0] = fields1[0]
-					gSensor[i].messageFields[1] = fields1[1]
-					gSensor[i].messageFields[2] = fields1[2]
-					gSensor[i].messageFields[3] = fmt.Sprintf("%08b", intField)
+					gSensor[i].name = fields[1]
+					gSensor[i].status = fields[2]
+					gSensor[i].value = fields[3]
+					// gSensor[i].binval = fmt.Sprintf("%08b", intField)
 					gSensor[i].lastSeen = time.Now()
 					gSensor[i].seen = true
 					lock.Unlock()
@@ -198,29 +218,35 @@ func readSensors() {
 }
 
 // simpleDial2 simulate arduino
-func simpleDial2(inmsg string, status int) {
+func simpleDial(inmsg string, simstatus int) {
 	time.Sleep(time.Second * 3)
 	rand.Seed(42)
+
+	var id string = inmsg
+	var name string
+	var status string
+	var msg string
+
 	for {
+		var value string = strconv.Itoa(rand.Intn(254))
 		// connect to this socket
 		conn, _ := net.Dial("tcp", "127.0.0.1:5000")
 		// conn.Close()
 
 		//build message
-		msg := inmsg
-
 		// add some random data
-		if status == 0 || status == -2 {
-			msg = inmsg + ";0;" + strconv.Itoa(rand.Intn(254)) + ";"
+		if simstatus == 0 || simstatus == -2 {
+			status = "0"
+			name = id + "-test"
+			msg = id + ";" + name + ";" + status + ";" + value + ";"
 		}
 
 		// add status errors
-		if status == -1 {
-			msg = inmsg + ";-1;" + strconv.Itoa(rand.Intn(254)) + ";"
+		if simstatus == -1 {
+			status = "-1"
+			name = id + "-test"
+			msg = id + ";" + name + ";" + status + ";" + value + ";"
 		}
-		// if status == -2 {
-		// 	mess = inmsg + ";-2;"
-		// }
 
 		// send message to server
 		n, err := fmt.Fprintf(conn, msg+"\n")
@@ -232,13 +258,14 @@ func simpleDial2(inmsg string, status int) {
 		message, _ := bufio.NewReader(conn).ReadString('\n')
 		log.Print("Message from server: " + message)
 
-		// sleep between sends
-		if status == -2 {
+		if simstatus == -2 {
 			// mess = inmsg + ";-2;"
 			conn.Close()
 			return
 		}
+
 		conn.Close()
+		// sleep between sends
 		time.Sleep(5 * time.Second)
 	}
 }
