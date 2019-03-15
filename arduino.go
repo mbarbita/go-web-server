@@ -86,11 +86,22 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 					wsMessage = append(wsMessage, (gSensor[v].ID +
 						" " + gSensor[v].messageFields[1] + " " +
 						gSensor[v].messageFields[2] + ";")...)
+
+					now := time.Now()
+					diff := now.Sub(gSensor[v].lastSeen)
+					if diff > time.Duration(time.Second*10) {
+						wsMessage = append(wsMessage, (gSensor[v].ID +
+							" -2 " +
+							fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006-15:04:05")) +
+							";")...)
+					}
 				} else {
 					wsMessage = append(wsMessage, (gSensor[v].ID +
-						" -2 " +
-						fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006-15:04:05")) +
-						";")...)
+						" -2 never ;")...)
+					// wsMessage = append(wsMessage, (gSensor[v].ID +
+					// 	" -2 " +
+					// 	fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006-15:04:05")) +
+					// 	";")...)
 				}
 			}
 
@@ -202,44 +213,25 @@ func readSensors() {
 	}
 }
 
-// simpleDial simulate arduino
-func simpleDial() {
-
-	// connect to this socket
-	// conn, _ := net.Dial("tcp", "127.0.0.1:5000")
-	// defer conn.Close()
-	// for {
-	// 	// read in input from stdin
-	// 	reader := bufio.NewReader(os.Stdin)
-	// 	fmt.Print("Text to send: ")
-	// 	text, _ := reader.ReadString('\n')
-	//
-	// 	// send to socket
-	// 	fmt.Fprintf(conn, text+"\n")
-	//
-	// 	// listen for reply
-	// 	message, _ := bufio.NewReader(conn).ReadString('\n')
-	// 	fmt.Print("message from server: " + message)
-	// }
-}
-
 // simpleDial2 simulate arduino
-func simpleDial2(msg string, err int) {
+func simpleDial2(msg string, cerr int) {
+	time.Sleep(time.Second * 3)
 	rand.Seed(42)
 	for {
 		// connect to this socket
 		conn, _ := net.Dial("tcp", "127.0.0.1:5000")
+		// conn.Close()
 
 		// add some random data
 		mess := msg + ";" + strconv.Itoa(rand.Intn(254)) + ";"
 
 		// add status errors
-		if err == -1 {
+		if cerr == -1 {
 			mess = msg + ";-1;"
 		}
-		if err == -2 {
-			mess = msg + ";-2;"
-		}
+		// if err == -2 {
+		// 	mess = msg + ";-2;"
+		// }
 
 		// send message to server
 		n, err := fmt.Fprintf(conn, mess+"\n")
@@ -252,6 +244,12 @@ func simpleDial2(msg string, err int) {
 		log.Print("Message from server: " + message)
 
 		// sleep between sends
+		if cerr == -2 {
+			// mess = msg + ";-2;"
+			conn.Close()
+			return
+		}
+		conn.Close()
 		time.Sleep(5 * time.Second)
 	}
 }
