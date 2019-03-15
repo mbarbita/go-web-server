@@ -13,8 +13,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 // Arduino global map for sensors data and global lock
@@ -40,81 +38,61 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	cc := make(chan bool)
-
 	// upgrade to websocket
 	c, err := upgrader.Upgrade(w, r, nil)
+	defer c.Close()
 	if err != nil {
 		log.Println("upgrade:", err)
 		return
 	}
-	defer c.Close()
-
-	// handle websocket incoming browser messages
-	go func(c *websocket.Conn) {
-		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				log.Println("read:", err)
-				cc <- true
-				return
-			}
-			log.Printf("recv: %s", message)
-		}
-	}(c)
 
 	// send websocket message to browser
 	for {
-		select {
-		case <-cc:
-			return
-		default:
-			var wsMessage []byte
-			var sortedKeys []int
+		var wsMessage []byte
+		var sortedKeys []int
 
-			// sort map keys and store into oarray
-			for k := range gSensor {
-				sortedKeys = append(sortedKeys, k)
-			}
-			sort.Ints(sortedKeys)
-
-			// build message to browser
-			// response = append(response, (" Sensor: " + gSensorVal[1] +
-			// 	" | " + gSensorVal[2])...)
-			for _, v := range sortedKeys {
-				if gSensor[v].seen {
-					wsMessage = append(wsMessage, (gSensor[v].ID +
-						" " + gSensor[v].messageFields[1] + " " +
-						gSensor[v].messageFields[2] + ";")...)
-
-					now := time.Now()
-					diff := now.Sub(gSensor[v].lastSeen)
-					if diff > time.Duration(time.Second*10) {
-						wsMessage = append(wsMessage, (gSensor[v].ID +
-							" -2 " +
-							fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006-15:04:05")) +
-							";")...)
-					}
-				} else {
-					wsMessage = append(wsMessage, (gSensor[v].ID +
-						" -2 never ;")...)
-					// wsMessage = append(wsMessage, (gSensor[v].ID +
-					// 	" -2 " +
-					// 	fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006-15:04:05")) +
-					// 	";")...)
-				}
-			}
-
-			// send message to browser
-			// mesage type = 1
-			err = c.WriteMessage(1, wsMessage)
-			if err != nil {
-				log.Println("ws write err:", err)
-				break
-			}
-			time.Sleep(time.Second)
+		// sort map keys and store into oarray
+		for k := range gSensor {
+			sortedKeys = append(sortedKeys, k)
 		}
-	}
+		sort.Ints(sortedKeys)
+
+		// build message to browser
+		// response = append(response, (" Sensor: " + gSensorVal[1] +
+		// 	" | " + gSensorVal[2])...)
+		for _, v := range sortedKeys {
+			if gSensor[v].seen {
+				wsMessage = append(wsMessage, (gSensor[v].ID +
+					" " + gSensor[v].messageFields[1] + " " +
+					gSensor[v].messageFields[2] + ";")...)
+
+				// calculate timeout
+				diff := time.Now().Sub(gSensor[v].lastSeen)
+				if diff > time.Duration(time.Second*20) {
+					wsMessage = []byte(gSensor[v].ID +
+						" -2 " +
+						fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006-15:04:05")) +
+						";")
+				}
+			} else {
+				wsMessage = append(wsMessage, (gSensor[v].ID +
+					" -2 never ;")...)
+				// wsMessage = append(wsMessage, (gSensor[v].ID +
+				// 	" -2 " +
+				// 	fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006-15:04:05")) +
+				// 	";")...)
+			}
+		}
+
+		// send message to browser
+		// mesage type = 1
+		err = c.WriteMessage(1, wsMessage)
+		if err != nil {
+			log.Println("ws write err:", err)
+			break
+		}
+		time.Sleep(time.Second)
+	} // for
 }
 
 // readSensors listen for arduinos and store received data into global data map
@@ -214,7 +192,7 @@ func readSensors() {
 }
 
 // simpleDial2 simulate arduino
-func simpleDial2(msg string, cerr int) {
+func simpleDial2(inmsg string, status int) {
 	time.Sleep(time.Second * 3)
 	rand.Seed(42)
 	for {
@@ -223,18 +201,18 @@ func simpleDial2(msg string, cerr int) {
 		// conn.Close()
 
 		// add some random data
-		mess := msg + ";" + strconv.Itoa(rand.Intn(254)) + ";"
+		msg := inmsg + ";" + strconv.Itoa(rand.Intn(254)) + ";"
 
 		// add status errors
-		if cerr == -1 {
-			mess = msg + ";-1;"
+		if status == -1 {
+			msg = inmsg + ";-1;"
 		}
-		// if err == -2 {
-		// 	mess = msg + ";-2;"
+		// if status == -2 {
+		// 	mess = inmsg + ";-2;"
 		// }
 
 		// send message to server
-		n, err := fmt.Fprintf(conn, mess+"\n")
+		n, err := fmt.Fprintf(conn, msg+"\n")
 		if err != nil {
 			log.Println("conn write err:", err)
 		}
@@ -244,8 +222,8 @@ func simpleDial2(msg string, cerr int) {
 		log.Print("Message from server: " + message)
 
 		// sleep between sends
-		if cerr == -2 {
-			// mess = msg + ";-2;"
+		if status == -2 {
+			// mess = inmsg + ";-2;"
 			conn.Close()
 			return
 		}
