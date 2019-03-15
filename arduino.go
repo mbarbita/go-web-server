@@ -63,20 +63,25 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 		for _, v := range sortedKeys {
 			if gSensor[v].seen {
 				wsMessage = append(wsMessage, (gSensor[v].ID +
-					" " + gSensor[v].messageFields[1] + " " +
-					gSensor[v].messageFields[2] + ";")...)
+					" " +
+					gSensor[v].messageFields[1] +
+					" " +
+					gSensor[v].messageFields[2] +
+					" " +
+					gSensor[v].messageFields[3] +
+					";")...)
 
 				// calculate timeout
 				diff := time.Now().Sub(gSensor[v].lastSeen)
 				if diff > time.Duration(time.Second*20) {
 					wsMessage = []byte(gSensor[v].ID +
-						" -2 " +
+						" -2 0 " +
 						fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006-15:04:05")) +
 						";")
 				}
 			} else {
 				wsMessage = append(wsMessage, (gSensor[v].ID +
-					" -2 never ;")...)
+					" -2 0 never;")...)
 				// wsMessage = append(wsMessage, (gSensor[v].ID +
 				// 	" -2 " +
 				// 	fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006-15:04:05")) +
@@ -108,7 +113,7 @@ func readSensors() {
 		gSensor[i] = &Arduino{
 			ID:            "A" + strconv.Itoa(i),
 			message:       "",
-			messageFields: make([]string, 3),
+			messageFields: make([]string, 4),
 			lastSeen:      time.Time{},
 			// lastSeen: time.Now(),
 			seen: false,
@@ -168,14 +173,15 @@ func readSensors() {
 			// use map key from 1 up not 0 up
 			for i := 1; i <= smax; i++ {
 				if fields1[0] == "A"+strconv.Itoa(i) {
-					intField, _ := strconv.Atoi(fields1[1])
+					intField, _ := strconv.Atoi(fields1[2])
 
 					// build the final map entry, lock and update the map
 					lock.Lock()
 					gSensor[i].message = lineStr
 					gSensor[i].messageFields[0] = fields1[0]
 					gSensor[i].messageFields[1] = fields1[1]
-					gSensor[i].messageFields[2] = fmt.Sprintf("%08b", intField)
+					gSensor[i].messageFields[2] = fields1[2]
+					gSensor[i].messageFields[3] = fmt.Sprintf("%08b", intField)
 					gSensor[i].lastSeen = time.Now()
 					gSensor[i].seen = true
 					lock.Unlock()
@@ -200,12 +206,17 @@ func simpleDial2(inmsg string, status int) {
 		conn, _ := net.Dial("tcp", "127.0.0.1:5000")
 		// conn.Close()
 
+		//build message
+		msg := inmsg
+
 		// add some random data
-		msg := inmsg + ";" + strconv.Itoa(rand.Intn(254)) + ";"
+		if status == 0 || status == -2 {
+			msg = inmsg + ";0;" + strconv.Itoa(rand.Intn(254)) + ";"
+		}
 
 		// add status errors
 		if status == -1 {
-			msg = inmsg + ";-1;"
+			msg = inmsg + ";-1;" + strconv.Itoa(rand.Intn(254)) + ";"
 		}
 		// if status == -2 {
 		// 	mess = inmsg + ";-2;"

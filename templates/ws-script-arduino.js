@@ -13,15 +13,15 @@ window.addEventListener("load", function(evtArd) {
             switch (fields[0]) {
                 case "-2":
                     dArd.style.backgroundColor = 'gray';
-                    dArd.innerHTML = key + " TIMEOUT, last seen: "+ fields[1];
+                    dArd.innerHTML = key + " TIMEOUT, last seen: "+ fields[2];
                     break;
                 case "-1":
                     dArd.style.backgroundColor = 'red';
-                    dArd.innerHTML = key + " TROUBLE";
+                    dArd.innerHTML = key + " TROUBLE "+ fields[0]+" "+ fields[1];
                     break;
                 default:
                     dArd.style.backgroundColor = 'green';
-                    dArd.innerHTML = key + " " + value;
+                    dArd.innerHTML = key + " " + fields[1];
             }
             // console.log(key, value);
             outputArd.appendChild(dArd);
@@ -30,7 +30,7 @@ window.addEventListener("load", function(evtArd) {
 
     document.getElementById("open-ard").onclick = function(evtArd) {
         document.getElementById("output-ard").innerHTML = "";
-        var i = 0;
+        // var i = 0;
         if (wsArd) {
             return false;
         }
@@ -48,18 +48,19 @@ window.addEventListener("load", function(evtArd) {
             console.log("MESSAGE:");
             console.log(evtArd.data);
 
-            if (i % 3 == 0) {
-                outputArd.innerHTML = "";
-            }
+            // if (i % 3 == 0) {
+            //     outputArd.innerHTML = "";
+            // }
 
             var fields = evtArd.data.split(";");
             for (let value of fields) {
                 var fields2 = value.split(" ");
-                messageMap.set(fields2[0], fields2[1]+" "+ fields2[2]);
+                messageMap.set(fields2[0],
+                  fields2[1] + " " + fields2[2] + " " + fields2[3]);
             };
             messageMap.delete("");
 
-            i++
+            // i++
             drawArd();
         }
 
