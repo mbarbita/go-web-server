@@ -193,7 +193,6 @@ func readSensors() {
 			for i := 1; i <= smax; i++ {
 				// TODO: read signature from cfg.ini
 				if fields[0] == "A"+strconv.Itoa(i) {
-					// intField, _ := strconv.Atoi(fields1[2])
 
 					// build the final map entry, lock and update the map
 					lock.Lock()
@@ -201,7 +200,8 @@ func readSensors() {
 					gSensor[i].name = fields[1]
 					gSensor[i].status = fields[2]
 					gSensor[i].value = fields[3]
-					// gSensor[i].binval = fmt.Sprintf("%08b", intField)
+					intField, _ := strconv.Atoi(fields[2])
+					gSensor[i].binval = fmt.Sprintf("%08b", intField)
 					gSensor[i].lastSeen = time.Now()
 					gSensor[i].seen = true
 					lock.Unlock()
@@ -218,11 +218,11 @@ func readSensors() {
 }
 
 // simpleDial2 simulate arduino
-func simpleDial(inmsg string, simstatus int) {
+func simpleDial(id string, simstatus int) {
 	time.Sleep(time.Second * 3)
 	rand.Seed(42)
 
-	var id string = inmsg
+	// var id string = inmsg
 	var name string
 	var status string
 	var msg string
