@@ -21,14 +21,13 @@ func wsMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cc := make(chan bool)
-
 	// upgrade to websocket
 	c, err := upgrader.Upgrade(w, r, nil)
+	defer c.Close()
 	if err != nil {
 		log.Println("upgrade:", err)
 		return
 	}
-	defer c.Close()
 
 	// handle websocket incoming browser messages
 	go func(c *websocket.Conn) {

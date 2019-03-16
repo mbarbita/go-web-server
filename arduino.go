@@ -81,27 +81,29 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 						ls +
 						"|")...)
 
-				// calculate timeout
+				// calculate timeout and build response
 				diff := time.Now().Sub(gSensor[v].lastSeen)
 				if diff > time.Duration(time.Second*20) {
-					wsMessage = []byte(gSensor[v].id +
-						";" +
-						gSensor[v].name +
-						";-2;0;" +
-						ls +
-						"|")
+					wsMessage = []byte(
+						gSensor[v].id +
+							";" +
+							gSensor[v].name +
+							";-2;0;" +
+							ls +
+							"|")
 				}
-			} else {
-				wsMessage = append(wsMessage, (gSensor[v].id +
-					";" +
-					"no name" +
-					";-2;0;never|")...)
+			} else { // not seen
+				wsMessage = append(wsMessage,
+					(gSensor[v].id +
+						";" +
+						"no name" +
+						";-2;0;never|")...)
 				// wsMessage = append(wsMessage, (gSensor[v].ID +
 				// 	" -2 " +
 				// 	fmt.Sprint(gSensor[v].lastSeen.Format("02-01-2006-15:04:05")) +
 				// 	";")...)
 			}
-		}
+		} // for
 
 		// send message to browser
 		// mesage type = 1
@@ -237,14 +239,14 @@ func simpleDial(id string, simstatus int) {
 		// add some random data
 		if simstatus == 0 || simstatus == -2 {
 			status = "0"
-			name = id + "-test"
+			name = id + "-name"
 			msg = id + ";" + name + ";" + status + ";" + value + ";"
 		}
 
 		// add status errors
 		if simstatus == -1 {
 			status = "-1"
-			name = id + "-test"
+			name = id + "-name"
 			msg = id + ";" + name + ";" + status + ";" + value + ";"
 		}
 

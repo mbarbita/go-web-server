@@ -13,15 +13,18 @@ window.addEventListener("load", function(evtArd) {
             switch (fields[1]) {
                 case "-2":
                     dArd.style.backgroundColor = 'gray';
-                    dArd.innerHTML = key + " " + fields[0] + " TIMEOUT, last seen: " + fields[3];
+                    dArd.innerHTML = key + " " + fields[0] +
+                    " TIMEOUT, last seen: " + fields[3];
                     break;
                 case "-1":
                     dArd.style.backgroundColor = 'red';
-                    dArd.innerHTML = key + " " + fields[0] + " TROUBLE "+ fields[1]+ " " + fields[2];
+                    dArd.innerHTML = key + " " + fields[0] +
+                    " TROUBLE "+ fields[1]+ " " + fields[2];
                     break;
                 default:
                     dArd.style.backgroundColor = 'green';
-                    dArd.innerHTML = key + " " + fields[0] + " " + fields[2];
+                    dArd.innerHTML = key + " " + fields[0] +
+                    " " + fields[2];
             }
             // console.log(key, value);
             outputArd.appendChild(dArd);

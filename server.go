@@ -89,7 +89,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 		log.Println("Session save error:", err)
 	}
 	// var path = strings.Trim(r.URL.Path, "/")
-	if logL1 {
+	if logLevel >= 6 {
 		log.Println("=== home ===")
 		log.Println("path:", r.URL.Path)
 		log.Println("host:", tData.Host)
@@ -132,7 +132,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	// tData.T = make(map[string]bool)
 	tData.Host = r.Host
 	// tData.WSHost = "ws://" + r.Host + "/echo"
-	if logL1 {
+	if logLevel >= 6 {
 		log.Println("=== download ===")
 		log.Println(r.URL.Path)
 	}
@@ -178,7 +178,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 		// folderURL += r.URL.Path
 	}
 
-	if logL1 {
+	if logLevel >= 6 {
 		log.Println("url:", r.URL.Path)
 		log.Println("req url:", reqURL)
 		log.Println("folder path:", folderPath)
@@ -240,7 +240,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	tData.Host = r.Host
 	// loggedin := false
 
-	if logL1 {
+	if logLevel >= 6 {
 		log.Println("=== upload ===")
 	}
 
@@ -273,7 +273,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 	tData.User, _ = session.Values["user"].(string)
 
-	if logL1 {
+	if logLevel >= 6 {
 		log.Println("method:", r.Method)
 	}
 
@@ -331,7 +331,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	// tData.NavAll = navAll
 	tData.Host = r.Host
 
-	if logL1 {
+	if logLevel >= 6 {
 		log.Println("=== login ===")
 	}
 
@@ -348,7 +348,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if logL1 {
+	if logLevel >= 6 {
 		log.Println("method:", r.Method)
 	}
 
@@ -375,7 +375,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		// Get credentials from POST
 		r.ParseForm()
 
-		if logL1 {
+		if logLevel >= 6 {
 			log.Println("form username:", r.Form["username"])
 			log.Println("form password:", r.Form["password"])
 		}
@@ -383,7 +383,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		formuser := r.Form["username"][0]
 		formpassword := r.Form["password"][0]
 
-		if logL1 {
+		if logLevel >= 6 {
 			log.Println("form username:", formuser, "form password:", formpassword)
 		}
 
@@ -404,7 +404,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 				}
 				// mutex ?
 				authenticatedMap[formuser] = true
-				if logL1 {
+				if logLevel >= 6 {
 					log.Println("auth map:", authenticatedMap)
 				}
 				http.Redirect(w, r, "/home.html", http.StatusSeeOther)
@@ -422,7 +422,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
-	if logL1 {
+	if logLevel >= 6 {
 		log.Println("=== logout ===")
 	}
 
@@ -498,7 +498,7 @@ func dirWatcher(folders ...string) {
 		for {
 			select {
 			case event := <-watcher.Events:
-				if logL1 {
+				if logLevel >= 6 {
 					log.Println("=== dir Watcher ===")
 					log.Println("event:", event)
 				}
@@ -533,47 +533,24 @@ var (
 
 	htmlTmpl = template.Must(template.ParseGlob("templates/*.*"))
 
-	//navAll = []string{"home", "downloads", "upload", "login"}
 	store *sessions.CookieStore
 
-	logL0, logL1 bool
-	logL2, logL3 bool
+	logLevel int8
 
 	// loginsMap        = make(map[string]string)
 	authenticatedMap = make(map[string]bool)
 
 	upgrader = websocket.Upgrader{} // use default options
 	wsChan   = make(chan string)
-	// loggerBuf bytes.Buffer
-	// logger    = log.New(&loggerBuf, "logger: ", log.Lshortfile)
 )
 
 func init() {
 
-	switch cfgMap["log level"] {
-	case "0":
-		logL0 = true
-		log.Println("Log level: 0")
-	case "1":
-		logL1 = true
-		log.Println("Log level: 1")
-	case "2":
-		logL2 = true
-		log.Println("Log level: 2")
-	case "3":
-		logL3 = true
-		log.Println("Log level: 3")
+	logLevel, err := strconv.Atoi(cfgMap["log level"])
+	if err != nil {
+		log.Println("logLevel conv error:", err)
 	}
-
-	// if cfgMap["logl0"] == "1" {
-	// 	logL0 = true
-	// 	log.Println("Log level 0")
-	// }
-	//
-	// if cfgMap["logl1"] == "1" {
-	// 	logL1 = true
-	// 	log.Println("Log level 1")
-	// }
+	log.Println("log level:", logLevel)
 
 	// gorilla cookie store
 	var SHA1 = sha256.Sum256([]byte("sha 1-1"))
@@ -592,7 +569,7 @@ func init() {
 	// logins = getLogins()
 	// getLogins()
 
-	if logL1 {
+	if logLevel >= 6 {
 		log.Println("logins map (init func):", usersMap)
 	}
 
@@ -600,7 +577,7 @@ func init() {
 	for k := range usersMap {
 		authenticatedMap[k] = false
 	}
-	if logL1 {
+	if logLevel >= 6 {
 		log.Println("authenticated map (init func):", authenticatedMap)
 	}
 
@@ -615,21 +592,14 @@ func main() {
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 
-	// logger.Print(fmt.Sprint("lg test ", loginsMap))
-	// fmt.Print(&loggerBuf)
-
 	//Watch template foldr
 	go dirWatcher("templates")
 
 	go wsChanSend()
 	go readSensors()
-	// "A1;123;"
 	go simpleDial("A1", -2)
 	go simpleDial("A2", -1)
 	go simpleDial("A3", 0)
-	// go func() {
-	// time.Sleep(2 * time.Second)
-	// }()
 
 	http.HandleFunc("/home.html/", home)
 	http.HandleFunc("/downloads.html/", download)
