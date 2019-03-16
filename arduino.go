@@ -33,6 +33,9 @@ var gSensor map[int]*Arduino
 var sepAtoS = ";"
 var sepStoB = "|"
 
+// var signature = "A"
+var ardSig = cfgMap["arduino signature"]
+
 // wsArduino handles browser requests to /msgard/
 func wsArduino(w http.ResponseWriter, r *http.Request) {
 
@@ -127,7 +130,7 @@ func readSensors() {
 	for i := 1; i <= smax; i++ {
 		lock.Lock()
 		gSensor[i] = &Arduino{
-			id:      "A" + strconv.Itoa(i),
+			id:      ardSig + strconv.Itoa(i),
 			name:    "",
 			message: "",
 			// messageFields: make([]string, 4),
@@ -187,26 +190,30 @@ func readSensors() {
 			// convert to string and split on ; separator into an string slice
 			lineStr := string(line)
 			fields := strings.Split(strings.TrimSpace(lineStr), ";")
-			log.Println("reading from sensor:", lineStr)
+			log.Print("reading from sensor:", lineStr)
+			log.Println("reading fromsensor total fields:", len(fields))
 
 			// loop for configured max sensors
 			// check for a recognisable field in the message
 			// use map key from 1 up
 			for i := 1; i <= smax; i++ {
-				// TODO: read signature from cfg.ini
-				if fields[0] == "A"+strconv.Itoa(i) {
 
-					// build the final map entry, lock and update the map
-					lock.Lock()
-					gSensor[i].message = lineStr
-					gSensor[i].name = fields[1]
-					gSensor[i].status = fields[2]
-					gSensor[i].value = fields[3]
-					intField, _ := strconv.Atoi(fields[2])
-					gSensor[i].binval = fmt.Sprintf("%08b", intField)
-					gSensor[i].lastSeen = time.Now()
-					gSensor[i].seen = true
-					lock.Unlock()
+				if len(fields) == 5 {
+					// TODO: read signature from cfg.ini
+					if fields[0] == ardSig+strconv.Itoa(i) {
+
+						// build the final map entry, lock and update the map
+						lock.Lock()
+						gSensor[i].message = lineStr
+						gSensor[i].name = fields[1]
+						gSensor[i].status = fields[2]
+						gSensor[i].value = fields[3]
+						intField, _ := strconv.Atoi(fields[2])
+						gSensor[i].binval = fmt.Sprintf("%08b", intField)
+						gSensor[i].lastSeen = time.Now()
+						gSensor[i].seen = true
+						lock.Unlock()
+					}
 				}
 			}
 			for k, v := range gSensor {
@@ -219,7 +226,7 @@ func readSensors() {
 	}
 }
 
-// simpleDial2 simulate arduino
+// simpleDial simulate arduino
 func simpleDial(id string, simstatus int) {
 	time.Sleep(time.Second * 3)
 	rand.Seed(42)

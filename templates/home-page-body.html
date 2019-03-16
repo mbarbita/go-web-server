@@ -18,12 +18,16 @@
     </div>
     <div class="row">
       <div class="col">
-        <script>{{template "websocket-script.js" .WSConn}}</script>
+        <script>
+          {{template "websocket-script.js" .WSConn}}
+        </script>
       {{template "websocket-div.html" .}}
     </div>
 
 <div class="col">
-  <script>{{template "ws-script-arduino.js" .WSConn}}</script>
+  <script>
+    {{template "ws-script-arduino.js" .WSConn}}
+  </script>
   {{template "ws-div-arduino.html" .}}
 </div>
 

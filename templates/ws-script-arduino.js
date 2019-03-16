@@ -5,7 +5,6 @@ window.addEventListener("load", function(evtArd) {
 
     var drawArd = function() {
         outputArd.innerHTML = "";
-
         for (var [key, value] of messageMap) {
           var fields = value.split(",");
           console.log(fields)
@@ -31,7 +30,7 @@ window.addEventListener("load", function(evtArd) {
         };
     };
 
-    document.getElementById("open-ard").onclick = function(evtArd) {
+    var wsOpen = function(evtArd) {
         document.getElementById("output-ard").innerHTML = "";
         // var i = 0;
         if (wsArd) {
@@ -50,22 +49,14 @@ window.addEventListener("load", function(evtArd) {
         wsArd.onmessage = function(evtArd) {
             console.log("MESSAGE:");
             console.log(evtArd.data);
-
-            // if (i % 3 == 0) {
-            //     outputArd.innerHTML = "";
-            // }
-
             var fields = evtArd.data.split("|");
             for (let value of fields) {
                 var fields2 = value.split(";");
                 messageMap.set(fields2[0],
                   fields2[1] + "," + fields2[2] + "," +
                   fields2[3]+ "," + fields2[4]);
-                  // fields2;
             };
             messageMap.delete("");
-
-            // i++
             drawArd();
         }
 
@@ -75,6 +66,11 @@ window.addEventListener("load", function(evtArd) {
         return false;
     };
 
+    document.getElementById("open-ard").onclick = function(evtArd) {
+      return wsOpen();
+    };
+
+
     document.getElementById("close-ard").onclick = function(evtArd) {
         if (!wsArd) {
             return false;
@@ -82,4 +78,5 @@ window.addEventListener("load", function(evtArd) {
         wsArd.close();
         return false;
     };
+    return wsOpen(evtArd);
 });

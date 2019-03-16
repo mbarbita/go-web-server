@@ -597,9 +597,9 @@ func main() {
 
 	go wsChanSend()
 	go readSensors()
-	go simpleDial("A1", -2)
-	go simpleDial("A2", -1)
-	go simpleDial("A3", 0)
+	go simpleDial(ardSig+"1", -2)
+	go simpleDial(ardSig+"2", -1)
+	go simpleDial(ardSig+"3", 0)
 
 	http.HandleFunc("/home.html/", home)
 	http.HandleFunc("/downloads.html/", download)
