@@ -5,8 +5,8 @@
     {{template "nav-all.html" .User}}
     <h3>Home</h3>
     <!-- <p>{{if .User}}<strong>{{.User}}</strong> | <a href="/logout.html">Logout</a> |
-      {{else}} Not Logged in. <a class="btn btn-outline-primary btn-sm" href="/login.html">Login</a>{{end}} Visits: {{.Visits}}</p>
-  </div> -->
+      {{else}} Not Logged in. <a class="btn btn-outline-primary btn-sm" href="/login.html">Login</a>{{end}} Visits: {{.Visits}}</p> -->
+  </div>
   <br>
   <div class="container text-light">
     <div class="row mb-3">
@@ -19,17 +19,17 @@
     <div class="row">
       <div class="col">
         <script>
-          {{template "websocket-script.js" .WSConn}}
+          { { template "websocket-script.js".WSConn } }
         </script>
-      {{template "websocket-div.html" .}}
-    </div>
+        {{template "websocket-div.html" .}}
+      </div>
 
-<div class="col">
-  <script>
-    {{template "ws-script-arduino.js" .WSConn}}
-  </script>
-  {{template "ws-div-arduino.html" .}}
-</div>
+      <div class="col">
+        <script>
+          { { template "ws-script-arduino.js".WSConn } }
+        </script>
+        {{template "ws-div-arduino.html" .}}
+      </div>
 
     </div>
   </div>
