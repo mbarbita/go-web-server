@@ -86,7 +86,7 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 						"|")...)
 
 				// calculate timeout and build response
-				diff := time.Now().Sub(gSensor[v].lastSeen)
+				diff := time.Since(gSensor[v].lastSeen)
 				if diff > time.Duration(time.Second*20) {
 					wsMessage = []byte(
 						gSensor[v].id +
