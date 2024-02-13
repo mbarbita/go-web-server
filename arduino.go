@@ -30,8 +30,9 @@ type Arduino struct {
 
 var lock sync.Mutex
 var gSensor map[int]*Arduino
-var sepAtoS = ";"
-var sepStoB = "|"
+
+// var sepAtoS = ";"
+// var sepStoB = "|"
 
 // var signature = "A"
 var ardSig = cfgMap["arduino signature"]
@@ -49,11 +50,11 @@ func wsArduino(w http.ResponseWriter, r *http.Request) {
 
 	// upgrade to websocket
 	c, err := upgrader.Upgrade(w, r, nil)
-	defer c.Close()
 	if err != nil {
 		log.Println("upgrade:", err)
 		return
 	}
+	defer c.Close()
 
 	// send websocket message to browser
 	for {

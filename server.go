@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -19,7 +18,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/gorilla/websocket"
 
-	cfgutils "github.com/mbarbita/golib-cfgutils"
+	cfgutils "github.com/mbarbita/go-cfgutils"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
@@ -186,7 +185,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read folder structure
-	files, err := ioutil.ReadDir(folderPath)
+	files, err := os.ReadDir(folderPath)
 
 	if err != nil {
 		http.Redirect(w, r, "/downloads.html", http.StatusNotFound)
